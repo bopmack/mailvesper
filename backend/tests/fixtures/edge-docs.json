@@ -1,0 +1,27 @@
+[
+ {"name":"every block, odd values","doc":{"settings":{"width":640,"bodyBg":"#EEE","contentBg":"#FFF","font":"Georgia, serif","text":"#333","heading":"#111","link":"#06C","btn":"#E11D48","radius":6.5,"preheader":"Ünïcode “quotes” & <tags>"},
+  "rows":[
+   {"layout":[1,2,1],"stack":true,"pad":[12,8],"bg":"","hide":"mobile","cells":[
+     [{"id":"a","type":"heading","props":{"pad":[0,10,0,10],"size":22.5,"weight":700,"align":"left","html":"Hi {{ first_name }} — <b>50%</b> off"}}],
+     [{"id":"b","type":"text","props":{"pad":[4,0,4,0],"size":15,"lh":1.6,"align":"center","color":"","html":"<p>Word joiner spaces &amp; more</p>"}},
+      {"id":"c","type":"button","props":{"pad":[8,0,8,0],"label":"Shop <now>","href":"","bg":null,"color":"#fff","size":15,"align":"center","radius":null,"full":true}},
+      {"id":"d","type":"button","props":{"pad":[8,0,8,0],"label":"Read","href":"https://acme.com/a?x=1&y=2","color":"#fff","size":14,"align":"left","radius":0}}],
+     [{"id":"e","type":"image","props":{"pad":[0,7,0,7],"src":"hero","alt":"","width":83.33,"radius":4,"align":"center","href":"acme.com"}}]]},
+   {"layout":[1,1],"pad":[0,0],"cells":[
+     [{"id":"f","type":"video","props":{"pad":[0,0,0,0],"src":"img/coast.jpg","alt":"Watch","href":"https://youtube.com/x"}},{"id":"g","type":"quote","props":{"pad":[10,10,10,10],"html":"Great “stuff”","src":"avatar","who":"Ada O'Neil"}}],
+     [{"id":"h","type":"product","props":{"pad":[0,0,0,0],"src":"p1","name":"Bottle & cap","price":"₦12,500","href":"https://shop.ng/p","btn":"Buy"}},{"id":"i","type":"spacer","props":{"h":18}}]]},
+   {"layout":[3],"pad":[16,16],"cells":[[
+     {"id":"j","type":"order","props":{"pad":[0,24,0,24],"items":[["Tee","Black / M",2,"$40.00","img/shoes.jpg"],["Mug","White",1,"$12.00",""]],"shipping":"Free","total":"$52.00"}},
+     {"id":"k","type":"social","props":{"pad":[0,0,0,0],"nets":["x","instagram","tiktok"],"urls":{"x":"https://x.com/acme"},"align":"center"}},
+     {"id":"l","type":"menu","props":{"pad":[0,0,0,0],"items":" Shop, New In ,Ünïque ","align":"right"}},
+     {"id":"m","type":"divider","props":{"pad":[0,0,0,0],"thick":1,"color":"#ddd","width":60}},
+     {"id":"n","type":"coupon","props":{"pad":[0,0,0,0],"code":"SAVE<20>","note":"Ends Sunday"}},
+     {"id":"o","type":"html","props":{"pad":[0,0,0,0],"code":"<p style=\"color:red\">{{ company | \"us\" }}</p>"}},
+     {"id":"p","type":"footer","props":{"pad":[20,24,20,24],"note":"You signed up","company":"Acme & Co","address":"1 Way, Lagos"}}]]}
+  ]}},
+ {"name":"imported full HTML","doc":{"settings":{"width":600,"bodyBg":"#fff","contentBg":"#fff","font":"Helvetica, Arial, sans-serif","text":"#333","heading":"#111","link":"#06C","btn":"#000","radius":8},
+  "rows":[{"layout":[1],"pad":[0,0],"cells":[[{"id":"z","type":"html","props":{"pad":[0,0,0,0],"code":"  <!DOCTYPE html><html><body>Hi {{first_name}} <a href=\"{{ unsubscribe_url }}\">x</a></body></html>"}}]]}]}},
+ {"name":"no footer, image heavy, odd widths","doc":{"settings":{"width":601,"bodyBg":"#fff","contentBg":"#fff","font":"Helvetica, Arial, sans-serif","text":"#333","heading":"#111","link":"#06C","btn":"#000","radius":8,"preheader":""},
+  "rows":[{"layout":[1,1,1,1,1,1,1,1],"pad":[1,3],"cells":[[{"id":"q1","type":"image","props":{"pad":[0,0,0,0],"src":"f1","width":100,"radius":0,"align":"left"}}],[],[],[],[],[],[],[]]},
+          {"layout":[7,1],"pad":[0,0],"cells":[[{"id":"q2","type":"image","props":{"pad":[0,0,0,0],"src":"https://cdn.x.com/a.png","alt":"A","width":60,"radius":0,"align":"left","href":"https://x.com"}},{"id":"q3","type":"image","props":{"pad":[0,0,0,0],"src":"logo","alt":"B","width":100,"radius":0,"align":"left"}}],[{"id":"q4","type":"text","props":{"pad":[0,0,0,0],"size":14,"lh":1.5,"align":"left","html":"Hi {{first_name}} and {{ first_name }}"}}]]}]}}
+]

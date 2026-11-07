@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Campaign report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #FAFAFA; --card: #FFFFFF; --text: #18181B; --text-2: #52525B; --text-3: #A1A1AA; --border: #E4E4E7; --soft: #F4F4F5; --accent: #5B5BF7; --opened: #2563EB; --clicked: #7C3AED; --ok: #16A34A; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0B0B0E; --card: #141418; --text: #F4F4F5; --text-2: #A1A1AA; --text-3: #71717A; --border: #27272A; --soft: #1C1C21; --ok: #4ADE80; } }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Inter, -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 32px 16px 48px; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  .eyebrow { font: 500 11.5px/1 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+  h1 { font-size: 26px; letter-spacing: -.02em; margin: 10px 0 4px; line-height: 1.25; }
+  .sub { color: var(--text-2); font-size: 14px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; margin-top: 16px; }
+  .card h2 { font-size: 14.5px; padding: 16px 18px 0; }
+  .card .hint { color: var(--text-3); font-size: 12.5px; padding: 2px 18px 0; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stats > div { padding: 18px; border-right: 1px solid var(--border); }
+  .stats > div:last-child { border-right: 0; }
+  .stats small { display: block; font-size: 12px; color: var(--text-3); }
+  .stats b { display: block; font-size: 26px; letter-spacing: -.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stats span { font-size: 12.5px; color: var(--text-2); }
+  .row { display: flex; align-items: center; gap: 12px; padding: 11px 18px; border-top: 1px solid var(--border); font-size: 13.5px; }
+  .row:first-of-type { margin-top: 12px; }
+  .row .u { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .n { font-weight: 650; font-variant-numeric: tabular-nums; }
+  .bar { flex: 0 0 120px; height: 6px; border-radius: 99px; background: var(--soft); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 99px; }
+  .empty { padding: 14px 18px 18px; color: var(--text-3); font-size: 13.5px; }
+  svg { display: block; width: 100%; height: 180px; }
+  .chart { padding: 10px 14px 14px; }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--text-2); padding: 12px 18px 0; }
+  .legend i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .foot { margin-top: 24px; font-size: 12px; color: var(--text-3); text-align: center; }
+  .msg { max-width: 420px; margin: 80px auto; text-align: center; color: var(--text-2); }
+  @media (max-width: 640px) { .stats { grid-template-columns: 1fr 1fr; } .stats > div:nth-child(2) { border-right: 0; } .stats > div:nth-child(-n+2) { border-bottom: 1px solid var(--border); } .bar { flex-basis: 60px; } }
+</style>
+</head>
+<body>
+<main class="wrap" id="root" aria-live="polite"><p class="msg">Loading…</p></main>
+<script src="/r/r.js?v=2"></script>
+</body>
+</html>

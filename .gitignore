@@ -1,0 +1,7 @@
+.DS_Store
+*.log
+/backend/.env
+
+# MailVesper Pro is a separate private repository and must never be committed here.
+/backend/pro/
+Sendline-Pro/

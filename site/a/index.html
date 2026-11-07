@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Approval request</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #FAFAFA; --card: #FFFFFF; --text: #18181B; --text-2: #52525B; --text-3: #A1A1AA; --border: #E4E4E7; --accent: #5B5BF7; --accent-2: #4646E0; --ok: #16A34A; --ok-bg: #EAF7EE; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0B0B0E; --card: #141418; --text: #F4F4F5; --text-2: #A1A1AA; --text-3: #71717A; --border: #27272A; --ok: #4ADE80; --ok-bg: #0F2A1A; } }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Inter, -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; -webkit-font-smoothing: antialiased; }
+  .card { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px 28px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.04); }
+  .mark { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; margin: 0 auto 18px; background: #EEEEFE; color: var(--accent); font-weight: 700; font-size: 20px; }
+  .mark.ok { background: var(--ok-bg); color: var(--ok); }
+  h1 { font-size: 21px; letter-spacing: -.02em; line-height: 1.3; margin-bottom: 8px; }
+  p { color: var(--text-2); font-size: 14.5px; line-height: 1.6; }
+  .email { font-weight: 600; color: var(--text); }
+  button { font: inherit; font-weight: 600; font-size: 15px; border: 0; border-radius: 10px; padding: 12px 18px; width: 100%; cursor: pointer; margin-top: 22px; background: var(--accent); color: #fff; }
+  button:hover { background: var(--accent-2); }
+  button:disabled { opacity: .6; cursor: default; }
+  .link { background: none; color: var(--accent); width: auto; padding: 6px; margin-top: 14px; font-size: 13.5px; }
+  .link:hover { background: none; text-decoration: underline; }
+  .foot { margin-top: 22px; font-size: 12px; color: var(--text-3); }
+  .err { color: #DC2626; font-size: 13.5px; margin-top: 12px; }
+  .topics { text-align: left; margin-top: 20px; border-top: 1px solid var(--border); }
+  .topic { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .topic input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
+  .topic b { display: block; font-size: 14.5px; }
+  .topic small { color: var(--text-2); font-size: 13px; }
+  .secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .secondary:hover { background: var(--bg); }
+  .req { text-align: left; margin-top: 18px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; color: var(--text); }
+  .meta { text-align: left; margin-top: 12px; font-size: 13px; color: var(--text-2); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .reject { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .reject:hover { background: var(--bg); }
+  .mark.no { background: #FDECEC; color: #DC2626; }
+</style>
+</head>
+<body>
+<main class="card" id="card" aria-live="polite"><p>Loading…</p></main>
+<script src="/a/a.js?v=3"></script>
+</body>
+</html>

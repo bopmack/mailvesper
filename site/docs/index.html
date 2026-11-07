@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API reference · MailVesper</title>
+  <meta name="description" content="Send email, sync contacts, track events and receive signed webhooks with the MailVesper REST API.">
+  <link rel="icon" href="/auth/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/docs/docs.css?v=3">
+</head>
+<body>
+<header class="top">
+  <button class="navtoggle" id="navtoggle" aria-label="Sections">Sections</button>
+  <a class="brand" href="/docs/"><img src="/auth/logo-mark.svg" alt="">MailVesper <span>API</span></a>
+  <div class="grow"></div>
+  <a class="btn hide-sm" href="/app/#/keys">API keys</a>
+  <a class="btn" href="/app/">Open the app</a>
+</header>
+
+<div class="wrap">
+<nav class="side" aria-label="API reference">
+  <h4>Basics</h4>
+  <a href="#introduction">Introduction</a>
+  <a href="#authentication">Authentication</a>
+  <a href="#errors">Errors</a>
+  <a href="#rate-limits">Rate limits</a>
+  <a href="#idempotency">Idempotency</a>
+  <h4>Email</h4>
+  <a href="#send-email"><span class="m">POST</span>Send an email</a>
+  <a href="#send-batch"><span class="m">POST</span>Send a batch</a>
+  <a href="#get-email"><span class="m">GET</span>Retrieve an email</a>
+  <a href="#merge-tags">Merge tags</a>
+  <h4>Contacts and events</h4>
+  <a href="#upsert-contact"><span class="m">POST</span>Create or update</a>
+  <a href="#batch-contacts"><span class="m">POST</span>Bulk create or update</a>
+  <a href="#get-contact"><span class="m">GET</span>Retrieve a contact</a>
+  <a href="#delete-contact"><span class="m">DEL</span>Erase a contact</a>
+  <a href="#lists"><span class="m">POST</span>Lists</a>
+  <a href="#track-event"><span class="m">POST</span>Track an event</a>
+  <a href="#journey-trigger"><span class="m">POST</span>Start a journey</a>
+  <h4>Webhooks</h4>
+  <a href="#webhooks">Event webhooks</a>
+  <a href="#manage-webhooks">Managing endpoints</a>
+  <a href="#verify">Verifying signatures</a>
+  <a href="#journey-webhooks">Journey webhooks</a>
+  <a href="#unsubscribe">Unsubscribe headers</a>
+</nav>
+
+<main>
+<section id="introduction">
+  <h1>API reference</h1>
+  <p class="lead">Send email through your own Amazon SES account, keep contacts in sync, feed events to your journeys and get signed notifications for everything that happens to a message.</p>
+  <p>Every request goes to this base URL over HTTPS, with JSON bodies:</p>
+  <div class="code" data-label="Base URL"><pre>https://mail.example.com/api/v1</pre></div>
+  <p>Before you send, connect Amazon SES (or your own SMTP server) and verify a sender in the app. Each response carries an <code>X-Request-Id</code> header; send your own (8–64 letters, digits or hyphens) to have it echoed back, which helps when you contact support.</p>
+</section>
+
+<section id="authentication">
+  <h2>Authentication</h2>
+  <p>Create a key under <a href="/app/#/keys">API keys</a> (owners and admins). It is shown once; MailVesper keeps only a hash. Send it as a bearer token:</p>
+  <div class="code"><pre>Authorization: Bearer sl_live_…</pre></div>
+  <p>Keys belong to one workspace and have one of two scopes:</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Scope</th><th>Can call</th></tr>
+    <tr><td><code>send</code></td><td>Sending and reading emails: <code>/emails</code>, <code>/emails/batch</code>, <code>/emails/{id}</code>.</td></tr>
+    <tr><td><code>full</code></td><td>Everything above, plus <code>/contacts</code>, <code>/events</code> and <code>/webhooks</code>.</td></tr>
+  </table></div>
+  <p>A missing or malformed key returns <code>401 unauthenticated</code>; a revoked key the same. A <code>send</code> key on a contacts or events route returns <code>403 forbidden</code>.</p>
+</section>
+
+<section id="errors">
+  <h2>Errors</h2>
+  <p>Errors always use the same JSON shape. <code>fields</code>, <code>retry_after</code> and <code>details</code> appear only when they apply.</p>
+  <div class="code" data-label="422"><pre>{
+  "error": {
+    "code": "validation_failed",
+    "message": "Add at least one address.",
+    "fields": { "to": "Add at least one address." }
+  }
+}</pre></div>
+  <div class="tbl-wrap"><table>
+    <tr><th>Status</th><th>Code</th><th>Meaning</th></tr>
+    <tr><td>401</td><td><code>unauthenticated</code></td><td>No valid API key.</td></tr>
+    <tr><td>402</td><td><code>plan_limit</code></td><td>The workspace’s plan has no room (only on installations that sell plans). <code>details</code> has <code>limit</code> and <code>room</code>.</td></tr>
+    <tr><td>403</td><td><code>forbidden</code></td><td>The key’s scope doesn’t allow this route.</td></tr>
+    <tr><td>403</td><td><code>workspace_suspended</code></td><td>Sending is paused for this workspace by the platform.</td></tr>
+    <tr><td>404</td><td><code>not_found</code></td><td>No such email, contact or route.</td></tr>
+    <tr><td>405</td><td><code>method_not_allowed</code></td><td>Wrong HTTP method.</td></tr>
+    <tr><td>409</td><td><code>idempotency_conflict</code></td><td>The <code>Idempotency-Key</code> was used with a different body.</td></tr>
+    <tr><td>409</td><td><code>request_in_progress</code></td><td>The first request with this <code>Idempotency-Key</code> hasn’t finished.</td></tr>
+    <tr><td>409</td><td><code>journey_inactive</code></td><td>The journey isn’t on, or doesn’t start from a webhook.</td></tr>
+    <tr><td>422</td><td><code>validation_failed</code></td><td>Something in the body is wrong; see <code>fields</code>.</td></tr>
+    <tr><td>422</td><td><code>from_domain_not_verified</code></td><td>The <code>from</code> address isn’t a verified sender (a verified domain, or with SMTP sending also a single verified address).</td></tr>
+    <tr><td>422</td><td><code>ses_not_connected</code></td><td>Nothing to send with yet: connect Amazon SES or an SMTP server.</td></tr>
+    <tr><td>429</td><td><code>rate_limited</code></td><td>Too many requests; wait <code>retry_after</code> seconds (also in the <code>Retry-After</code> header).</td></tr>
+    <tr><td>500</td><td><code>server_error</code></td><td>Our fault. Retrying with the same <code>Idempotency-Key</code> is safe.</td></tr>
+    <tr><td>503</td><td><code>unavailable</code></td><td>Briefly down for maintenance.</td></tr>
+  </table></div>
+</section>
+
+<section id="rate-limits">
+  <h2>Rate limits</h2>
+  <p>Each API key can make <strong>600 requests a minute</strong>, across all endpoints. Journey trigger URLs allow 600 a minute per journey and 300 a minute per sending IP. Over the limit you get <code>429 rate_limited</code> with a <code>Retry-After</code> header.</p>
+  <p>This is separate from Amazon SES’s own sending rate: MailVesper queues accepted emails and paces them to your SES quota, so a burst of API calls doesn’t fail because SES is slower.</p>
+</section>
+
+<section id="idempotency">
+  <h2>Idempotency</h2>
+  <p><code>POST /emails</code> and <code>POST /emails/batch</code> accept an <code>Idempotency-Key</code> header (8–255 characters). Retry with the same key after a timeout and you get the first response back, with <code>Idempotent-Replayed: true</code>, instead of a second email.</p>
+  <ul class="plain">
+    <li>Keys are remembered for 24 hours, per workspace. Only successful responses are stored.</li>
+    <li>The same key with a different body returns <code>409 idempotency_conflict</code>.</li>
+    <li>While the first request is still running, a repeat returns <code>409 request_in_progress</code>.</li>
+  </ul>
+  <div class="code"><pre>Idempotency-Key: order-1042-receipt</pre></div>
+</section>
+
+<section id="send-email">
+  <h2>Send an email <span class="scope">send</span></h2>
+  <div class="endpoint"><span class="verb post">POST</span>/emails</div>
+  <p>Creates one message per recipient and returns <code>202</code> right away; sending happens in the background, paced to your SES quota.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Field</th><th>Description</th></tr>
+    <tr><td>from<span class="req">required</span><span class="ty">string</span></td><td><code>news@acme.com</code> or <code>Acme &lt;news@acme.com&gt;</code>. The domain must be one of your verified domains (or a subdomain of one).</td></tr>
+    <tr><td>to<span class="req">required</span><span class="ty">string | string[]</span></td><td>Up to 50 addresses. Duplicates are dropped. Each recipient gets their own copy and tracking code.</td></tr>
+    <tr><td>subject<span class="ty">string</span></td><td>Up to 998 characters. Required unless you send a <code>template</code> (then the template’s subject is used).</td></tr>
+    <tr><td>html<span class="ty">string</span></td><td>The HTML body, up to 2 MB.</td></tr>
+    <tr><td>text<span class="ty">string</span></td><td>The plain-text body, up to 1 MB. If you send only <code>html</code>, a text version is made from it.</td></tr>
+    <tr><td>template<span class="ty">string</span></td><td>The id of a saved template in this workspace. Can’t be combined with <code>html</code>.</td></tr>
+    <tr><td>reply_to<span class="ty">string | string[]</span></td><td>Up to 5 addresses.</td></tr>
+    <tr><td>variables<span class="ty">object</span></td><td>Values for <a href="#merge-tags">merge tags</a>. Up to 100 keys; values must be text, numbers, true/false or null.</td></tr>
+    <tr><td>tags<span class="ty">object</span></td><td>Up to 10 key/value pairs for your own filtering, e.g. <code>{"order": "1042"}</code>. Keys: letters, digits, <code>_ -</code> (≤ 64); values: letters, digits, <code>_ . -</code> (≤ 200). Passed to SES as message tags and included in webhooks.</td></tr>
+    <tr><td>headers<span class="ty">object</span></td><td>Up to 20 custom headers, each one line of at most 870 characters. MailVesper sets From, To, Subject, Reply-To, Message-ID, List-Unsubscribe and the other standard headers itself; you can’t override them.</td></tr>
+    <tr><td>type<span class="ty">string</span></td><td><code>transactional</code> (default) or <code>marketing</code>.</td></tr>
+    <tr><td>unsubscribe<span class="ty">boolean</span></td><td>Add one-click unsubscribe headers. Defaults to <code>true</code> for marketing email or when <code>topic</code> is set.</td></tr>
+    <tr><td>topic<span class="ty">string</span></td><td>A subscription topic id. Recipients who opted out of it are skipped (returned as <code>suppressed</code>).</td></tr>
+  </table></div>
+  <p>You must send at least one of <code>html</code>, <code>text</code> or <code>template</code>. Addresses on your suppression list are skipped and come back with <code>status: "suppressed"</code> and a reason. Hard bounces, complaints and manual blocks stop every email. An <strong>unsubscribe stops marketing only</strong>: transactional email (password resets, receipts, security codes) still reaches people who left your newsletter, unless you send it under a <code>topic</code>.</p>
+  <div class="code" data-label="Request">
+<pre data-lang="cURL">curl -X POST https://mail.example.com/api/v1/emails \
+  -H "Authorization: Bearer $MAILVESPER_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: welcome-amara-1" \
+  -d '{
+    "from": "Acme &lt;hello@acme.com&gt;",
+    "to": "amara@example.com",
+    "subject": "Welcome, {{ first_name | there }}",
+    "html": "&lt;p&gt;Glad you are here!&lt;/p&gt;",
+    "variables": { "first_name": "Amara" },
+    "tags": { "flow": "welcome" }
+  }'</pre>
+<pre data-lang="Node">const res = await fetch("https://mail.example.com/api/v1/emails", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.MAILVESPER_KEY}`,
+    "Content-Type": "application/json",
+    "Idempotency-Key": "welcome-amara-1",
+  },
+  body: JSON.stringify({
+    from: "Acme &lt;hello@acme.com&gt;",
+    to: "amara@example.com",
+    subject: "Welcome, {{ first_name | there }}",
+    html: "&lt;p&gt;Glad you are here!&lt;/p&gt;",
+    variables: { first_name: "Amara" },
+  }),
+});
+const { data } = await res.json();</pre>
+<pre data-lang="PHP">$ch = curl_init('https://mail.example.com/api/v1/emails');
+curl_setopt_array($ch, [
+    CURLOPT_POST =&gt; true,
+    CURLOPT_RETURNTRANSFER =&gt; true,
+    CURLOPT_HTTPHEADER =&gt; [
+        'Authorization: Bearer '.getenv('MAILVESPER_KEY'),
+        'Content-Type: application/json',
+        'Idempotency-Key: welcome-amara-1',
+    ],
+    CURLOPT_POSTFIELDS =&gt; json_encode([
+        'from' =&gt; 'Acme &lt;hello@acme.com&gt;',
+        'to' =&gt; 'amara@example.com',
+        'subject' =&gt; 'Welcome, {{ first_name | there }}',
+        'html' =&gt; '&lt;p&gt;Glad you are here!&lt;/p&gt;',
+        'variables' =&gt; ['first_name' =&gt; 'Amara'],
+    ]),
+]);
+$result = json_decode(curl_exec($ch), true);</pre>
+  </div>
+  <div class="code" data-label="202 Accepted"><pre>{
+  "batch_id": null,
+  "data": [
+    {
+      "id": "01jbz8q3m4w6c2k9f5t7r1x0ya",
+      "tracking_code": "SL-8F2A-1C9D",
+      "to": "amara@example.com",
+      "status": "queued",
+      "error": null
+    }
+  ]
+}</pre></div>
+  <p><code>batch_id</code> is set when the request reached more than one recipient. Every email also carries its tracking code in an <code>X-Sendline-Tracking</code> header, so you can find it from a forwarded copy.</p>
+  <p>Besides <code>validation_failed</code>, sending can return <code>422 from_domain_not_verified</code>, <code>422 ses_not_connected</code>, <code>403 workspace_suspended</code> or <code>402 plan_limit</code>. Nothing is created when a request fails.</p>
+</section>
+
+<section id="send-batch">
+  <h2>Send a batch <span class="scope">send</span></h2>
+  <div class="endpoint"><span class="verb post">POST</span>/emails/batch</div>
+  <p>Different emails in one request: the body is a JSON <strong>array</strong> of up to 100 email objects, each with the fields of <a href="#send-email">Send an email</a>, reaching at most 500 recipients in total. It’s all or nothing: if any item is invalid, nothing is sent and the error fields are prefixed with the item’s index (<code>"3.to"</code>).</p>
+  <div class="code" data-label="Request"><pre>curl -X POST https://mail.example.com/api/v1/emails/batch \
+  -H "Authorization: Bearer $MAILVESPER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '[
+    { "from": "Acme &lt;orders@acme.com&gt;", "to": "amara@example.com", "subject": "Order 1042 shipped", "text": "On its way." },
+    { "from": "Acme &lt;orders@acme.com&gt;", "to": "tunde@example.com", "subject": "Order 1043 shipped", "text": "On its way." }
+  ]'</pre></div>
+  <p>The response is the same as for a single send, with one <code>batch_id</code> shared by every message.</p>
+</section>
+
+<section id="get-email">
+  <h2>Retrieve an email <span class="scope">send</span></h2>
+  <div class="endpoint"><span class="verb get">GET</span>/emails/{id}</div>
+  <p><code>{id}</code> is the message id or its tracking code (<code>SL-8F2A-1C9D</code>).</p>
+  <div class="code" data-label="200 OK"><pre>{
+  "id": "01jbz8q3m4w6c2k9f5t7r1x0ya",
+  "tracking_code": "SL-8F2A-1C9D",
+  "batch_id": null,
+  "source": "api",
+  "type": "transactional",
+  "from": "Acme &lt;hello@acme.com&gt;",
+  "to": "amara@example.com",
+  "subject": "Welcome, Amara",
+  "status": "delivered",
+  "error": null,
+  "tags": { "flow": "welcome" },
+  "ses_message_id": "0100018f…",
+  "created_at": "2026-10-26T10:15:02+00:00",
+  "sent_at": "2026-10-26T10:15:03+00:00",
+  "delivered_at": "2026-10-26T10:15:05+00:00"
+}</pre></div>
+  <div class="tbl-wrap"><table>
+    <tr><th>Status</th><th>Meaning</th></tr>
+    <tr><td><code>queued</code></td><td>Accepted, waiting to go to SES. If SES is throttling, <code>error</code> says why and it retries (up to 6 attempts, backing off to 10 minutes; a used-up daily quota retries every 30 minutes).</td></tr>
+    <tr><td><code>sending</code></td><td>Being handed to SES now.</td></tr>
+    <tr><td><code>sent</code></td><td>SES accepted it.</td></tr>
+    <tr><td><code>delayed</code></td><td>The receiving server deferred it; SES keeps retrying.</td></tr>
+    <tr><td><code>delivered</code></td><td>The receiving server accepted it.</td></tr>
+    <tr><td><code>bounced</code></td><td>Rejected by the receiving server. Hard bounces are suppressed automatically.</td></tr>
+    <tr><td><code>complained</code></td><td>The recipient marked it as spam. The address is suppressed.</td></tr>
+    <tr><td><code>suppressed</code></td><td>Not sent: the address is suppressed or opted out of the topic.</td></tr>
+    <tr><td><code>rejected</code></td><td>SES refused to send it.</td></tr>
+    <tr><td><code>failed</code></td><td>MailVesper couldn’t send it; <code>error</code> says why.</td></tr>
+  </table></div>
+  <p>Opens and clicks don’t change the status; they arrive as <a href="#webhooks">webhooks</a> and show in the app’s activity timeline.</p>
+</section>
+
+<section id="merge-tags">
+  <h2>Merge tags</h2>
+  <p>Subjects, HTML and text can use <code>{{ name }}</code>, with an optional fallback: <code>{{ first_name | there }}</code>. Values are HTML-escaped in the HTML body and left as they are in the subject and text.</p>
+  <p>Values come from, in order (the first one found wins):</p>
+  <ul class="plain">
+    <li>the request’s <code>variables</code> (in a journey: the properties of the event that started it, so a journey on <code>tip_sent</code> can say “Thanks for the {{ amount }} tip”);</li>
+    <li>the recipient’s contact, if they are one: <code>first_name</code>, <code>last_name</code>, <code>email</code> and every custom field;</li>
+    <li>built-ins: <code>email</code>, <code>tracking_code</code>, <code>unsubscribe_url</code>, <code>preferences_url</code>, <code>web_version_url</code>.</li>
+  </ul>
+  <p>Using <code>{{ unsubscribe_url }}</code> or <code>{{ preferences_url }}</code> in a body adds unsubscribe headers even to transactional email.</p>
+</section>
+
+<section id="upsert-contact">
+  <h2>Create or update a contact <span class="scope">full</span></h2>
+  <div class="endpoint"><span class="verb post">POST</span>/contacts</div>
+  <p>Matches on email. Returns <code>201</code> when the contact is new and <code>200</code> when it existed.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Field</th><th>Description</th></tr>
+    <tr><td>email<span class="req">required</span><span class="ty">string</span></td><td>Stored lower-case.</td></tr>
+    <tr><td>first_name, last_name<span class="ty">string</span></td><td>Up to 100 characters. <code>null</code> or <code>""</code> clears it.</td></tr>
+    <tr><td>fields<span class="ty">object</span></td><td>Custom fields, <strong>merged</strong> into the existing ones. Up to 100 keys of lowercase letters, digits and <code>_</code> (e.g. <code>plan</code>, <code>signup_date</code>); values are text (≤ 1,000 characters), numbers or true/false. <code>null</code> removes a field.</td></tr>
+    <tr><td>tags<span class="ty">string[]</span></td><td>Up to 50, each ≤ 60 characters (letters, digits, spaces, <code>- _ : .</code>). <strong>Added</strong>; existing tags are kept.</td></tr>
+    <tr><td>lists<span class="ty">string[]</span></td><td>List ids in this workspace to <strong>join</strong>. See <a href="#lists">Lists</a>.</td></tr>
+    <tr><td>remove_lists<span class="ty">string[]</span></td><td>List ids to <strong>leave</strong>.</td></tr>
+    <tr><td>unsubscribed<span class="ty">boolean</span></td><td><code>true</code> unsubscribes the address (it joins the suppression list). <code>false</code> does nothing.</td></tr>
+    <tr><td>resubscribe<span class="ty">boolean</span></td><td><code>true</code> lifts an earlier unsubscribe. Send it only when the person asked for it themselves, for example by turning a newsletter setting back on in your app. It never undoes a bounce or complaint.</td></tr>
+  </table></div>
+  <div class="code" data-label="Request"><pre>curl -X POST https://mail.example.com/api/v1/contacts \
+  -H "Authorization: Bearer $MAILVESPER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "amara@example.com",
+    "first_name": "Amara",
+    "fields": { "plan": "pro", "city": "Lagos" },
+    "tags": ["customer"]
+  }'</pre></div>
+  <div class="code" data-label="201 Created"><pre>{
+  "contact": {
+    "id": "01jbz9…",
+    "email": "amara@example.com",
+    "first_name": "Amara",
+    "last_name": null,
+    "name": "Amara",
+    "status": "subscribed",
+    "source": "api",
+    "engagement": null,
+    "dormant": false,
+    "fields": { "plan": "pro", "city": "Lagos" },
+    "last_sent_at": null,
+    "last_opened_at": null,
+    "last_clicked_at": null,
+    "created_at": "2026-10-26T10:20:00Z",
+    "tags": ["customer"],
+    "lists": []
+  }
+}</pre></div>
+  <p><code>status</code> is <code>subscribed</code>, <code>unsubscribed</code>, <code>bounced</code> or <code>complained</code>, and always follows the suppression list. Creating or changing a contact can start journeys (contact created, tag added, field changed, added to a list).</p>
+</section>
+
+<section id="batch-contacts">
+  <h2>Bulk create or update <span class="scope">full</span></h2>
+  <div class="endpoint"><span class="verb post">POST</span>/contacts/batch</div>
+  <p>For syncing an existing user base: the body is a JSON <strong>array</strong> of up to 500 contacts, each with the fields of <a href="#upsert-contact">Create or update</a>. Every item is checked before anything is saved (error fields are prefixed with the index, e.g. <code>"12.email"</code>). An email that appears twice is saved once, with its last values. On installations with plan limits, the new contacts must fit as a whole or nothing is saved (<code>402 plan_limit</code>).</p>
+  <div class="code" data-label="Request"><pre>curl -X POST https://mail.example.com/api/v1/contacts/batch \
+  -H "Authorization: Bearer $MAILVESPER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '[
+    { "email": "amara@example.com", "fields": { "total_spent": 120.5, "is_creator": false } },
+    { "email": "tunde@example.com", "first_name": "Tunde", "tags": ["vip"] }
+  ]'</pre></div>
+  <div class="code" data-label="200 OK"><pre>{
+  "data": [
+    { "email": "amara@example.com", "id": "01jbz9…", "status": "updated" },
+    { "email": "tunde@example.com", "id": "01jbza…", "status": "created" }
+  ],
+  "created": 1,
+  "updated": 1
+}</pre></div>
+  <p>A custom field seen for the first time is added to your fields with a type taken from its value: numbers become <em>number</em>, <code>true</code>/<code>false</code> <em>true/false</em>, <code>2026-10-26</code>-style values <em>date</em>, everything else <em>text</em>. That’s what lets you build segments like “total spent is more than 100”. A field’s type never changes afterwards.</p>
+</section>
+
+<section id="get-contact">
+  <h2>Retrieve a contact <span class="scope">full</span></h2>
+  <div class="endpoint"><span class="verb get">GET</span>/contacts/{email}</div>
+  <p>URL-encode the address. Returns <code>{"contact": {…}}</code> as above, or <code>404 not_found</code>.</p>
+</section>
+
+<section id="delete-contact">
+  <h2>Erase a contact <span class="scope">full</span></h2>
+  <div class="endpoint"><span class="verb del">DELETE</span>/contacts/{email}</div>
+  <p>For data-deletion requests. The contact is deleted; on their past emails the address is replaced with an anonymous one and the subject and body are removed. The address is added to the suppression list so it is never emailed again. Returns <code>{"erased": true}</code>.</p>
+  <div class="note warn"><strong>This can’t be undone.</strong> To stop email without erasing history, send <code>"unsubscribed": true</code> instead.</div>
+</section>
+
+<section id="lists">
+  <h2>Lists <span class="scope">full</span></h2>
+  <div class="endpoint"><span class="verb get">GET</span>/lists</div>
+  <div class="endpoint"><span class="verb post">POST</span>/lists</div>
+  <p><code>POST</code> takes a <code>name</code> (and an optional <code>description</code>) and returns the list with that name, creating it if needed: <code>201</code> when new, <code>200</code> when it already existed. Integrations can call it every time they connect and keep the <code>id</code>.</p>
+  <div class="code" data-label="200 OK"><pre>{ "list": { "id": "01jbzd…", "name": "Newsletter", "description": null } }</pre></div>
+</section>
+
+<section id="track-event">
+  <h2>Track an event <span class="scope">full</span></h2>
+  <div class="endpoint"><span class="verb post">POST</span>/events</div>
+  <p>Tells MailVesper something a contact did in your product, to start or move journeys (“Event: <code>order_placed</code>”). The contact is created if it doesn’t exist.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Field</th><th>Description</th></tr>
+    <tr><td>email<span class="req">required</span><span class="ty">string</span></td><td>Who did it.</td></tr>
+    <tr><td>event<span class="req">required</span><span class="ty">string</span></td><td>Letters, digits and <code>_ . : -</code>, up to 100. Can’t start with <code>contact.</code>, <code>email.</code>, <code>sendline.</code> or <code>webhook:</code>.</td></tr>
+    <tr><td>properties<span class="ty">object</span></td><td>Anything about the event, up to 8 KB as JSON. Stored with the event and included in the journey’s webhook steps.</td></tr>
+    <tr><td>occurred_at<span class="ty">string</span></td><td>When it happened (ISO 8601). Defaults to now; a future time is treated as now.</td></tr>
+    <tr><td>contact<span class="ty">object</span></td><td>Optional <code>first_name</code>, <code>last_name</code> and <code>fields</code> to update at the same time.</td></tr>
+    <tr><td>id<span class="ty">string</span></td><td>Your own id for this event, up to 80 characters. The same <code>id</code> within 24 hours is acknowledged with <code>"duplicate": true</code> but not recorded again, so retries are safe.</td></tr>
+  </table></div>
+  <div class="code" data-label="Request"><pre>curl -X POST https://mail.example.com/api/v1/events \
+  -H "Authorization: Bearer $MAILVESPER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "amara@example.com",
+    "event": "order_placed",
+    "properties": { "order_id": "1042", "total": 25000, "currency": "NGN" }
+  }'</pre></div>
+  <div class="code" data-label="202 Accepted"><pre>{ "accepted": true, "contact_id": "01jbz9…" }</pre></div>
+  <h3>In batches</h3>
+  <div class="endpoint"><span class="verb post">POST</span>/events/batch</div>
+  <p>A JSON array of up to 500 events with the same fields, for example one per subscriber when a creator goes live. All are checked before any is recorded (error fields are prefixed with the index). The response counts what was recorded and what was skipped as a repeated <code>id</code>:</p>
+  <div class="code" data-label="202 Accepted"><pre>{ "accepted": 498, "duplicates": 2 }</pre></div>
+</section>
+
+<section id="journey-trigger">
+  <h2>Start a journey from a webhook</h2>
+  <div class="endpoint"><span class="verb post">POST</span>/hooks/j/{token}</div>
+  <p>Journeys that start with <strong>Incoming webhook</strong> get their own URL, shown on the trigger in the journey editor. It needs no API key (the URL is the secret), so you can paste it into Zapier, n8n or a form tool. Treat it like a password; if it leaks, duplicate the journey for a new URL.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Field</th><th>Description</th></tr>
+    <tr><td>email<span class="req">required</span><span class="ty">string</span></td><td>The contact; created if new.</td></tr>
+    <tr><td>first_name, last_name<span class="ty">string</span></td><td>Up to 100 characters.</td></tr>
+    <tr><td>fields<span class="ty">object</span></td><td>Custom fields to set.</td></tr>
+    <tr><td>properties<span class="ty">object</span></td><td>Passed to the journey as the trigger’s data, up to 8 KB.</td></tr>
+    <tr><td>id<span class="ty">string</span></td><td>Your own id for this call, up to 80 characters. The same <code>id</code> never starts the journey twice, so retries are safe.</td></tr>
+  </table></div>
+  <p>Returns <code>202 {"accepted": true}</code>. An unknown URL returns <code>404</code>; a journey that is off or no longer starts from a webhook returns <code>409 journey_inactive</code>.</p>
+</section>
+
+
+
+<section id="webhooks">
+  <h2>Event webhooks</h2>
+  <p>Add an endpoint under <a href="/app/#/webhooks">Webhooks</a> (owners and admins) and pick the events to receive. MailVesper POSTs JSON to it as things happen.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Event</th><th>When</th><th>Extra fields in <code>data</code></th></tr>
+    <tr><td><code>email.sent</code></td><td>SES accepted the email</td><td></td></tr>
+    <tr><td><code>email.delivered</code></td><td>The receiving server accepted it</td><td><code>smtp_response</code>, <code>remote_mta_ip</code>, <code>processing_ms</code></td></tr>
+    <tr><td><code>email.delivery_delayed</code></td><td>A temporary problem; SES is retrying</td><td><code>delay_type</code>, <code>diagnostic</code>, <code>retrying_until</code></td></tr>
+    <tr><td><code>email.bounced</code></td><td>Hard or soft bounce</td><td><code>bounce_type</code> (<code>hard</code>/<code>soft</code>), <code>subtype</code>, <code>diagnostic</code>, <code>suppressed</code></td></tr>
+    <tr><td><code>email.complained</code></td><td>Marked as spam</td><td><code>feedback_type</code></td></tr>
+    <tr><td><code>email.rejected</code></td><td>SES refused to send it</td><td><code>reason</code></td></tr>
+    <tr><td><code>email.opened</code></td><td>Opened</td><td><code>user_agent</code>, <code>ip</code>, <code>machine</code>, <code>machine_reason</code></td></tr>
+    <tr><td><code>email.clicked</code></td><td>A link was clicked</td><td><code>url</code>, <code>user_agent</code>, <code>ip</code>, <code>machine</code></td></tr>
+    <tr><td><code>email.failed</code></td><td>MailVesper couldn’t send it</td><td><code>reason</code></td></tr>
+    <tr><td><code>email.suppressed</code></td><td>Not sent: the address is suppressed</td><td><code>reason</code> (<code>hard_bounce</code>, <code>complaint</code>, <code>unsubscribe</code>, <code>manual</code>, <code>topic</code>)</td></tr>
+    <tr><td><code>email.unsubscribed</code></td><td>The recipient unsubscribed</td><td><code>method</code> (<code>one_click</code>/<code>page</code>), <code>topic</code></td></tr>
+    <tr><td><code>email.test</code></td><td>Only from “Send test” in the app</td><td></td></tr>
+  </table></div>
+  <p><code>machine: true</code> marks opens by mail privacy proxies (such as Apple Mail Privacy Protection) and clicks by link scanners, so you can leave them out of engagement.</p>
+  <div class="code" data-label="POST to your endpoint"><pre>{
+  "type": "email.delivered",
+  "created_at": "2026-10-26T10:15:05Z",
+  "data": {
+    "id": "01jbz8q3m4w6c2k9f5t7r1x0ya",
+    "tracking_code": "SL-8F2A-1C9D",
+    "to": "amara@example.com",
+    "from": "Acme &lt;hello@acme.com&gt;",
+    "subject": "Welcome, Amara",
+    "type": "transactional",
+    "tags": { "flow": "welcome" },
+    "provider": "google",
+    "ses_message_id": "0100018f…",
+    "smtp_response": "250 2.0.0 OK",
+    "processing_ms": 1840
+  }
+}</pre></div>
+  <h3>Delivery and retries</h3>
+  <ul class="plain">
+    <li>Answer with any <strong>2xx within 10 seconds</strong>. Redirects aren’t followed.</li>
+    <li>Anything else is retried after 1 minute, 5 minutes, 30 minutes, 2 hours, 6 hours and 12 hours (7 attempts over about 20 hours), then marked failed.</li>
+    <li>After 50 failures in a row with no success for a day, the endpoint is paused and the app says why. Turn it back on once it’s fixed.</li>
+    <li>Events can arrive more than once or out of order. Use the <code>webhook-id</code> header to skip repeats.</li>
+    <li>Endpoints must be public <code>https://</code> URLs on port 443 or 8443, without a username or password in the URL. Private and internal addresses are refused.</li>
+  </ul>
+</section>
+
+<section id="manage-webhooks">
+  <h2>Managing endpoints <span class="scope">full</span></h2>
+  <p>Integrations can register their own endpoint when they connect and remove it when they disconnect. The same URL rules and the limit of 20 endpoints per workspace apply as in the app.</p>
+  <div class="endpoint"><span class="verb get">GET</span>/webhooks</div>
+  <div class="endpoint"><span class="verb post">POST</span>/webhooks</div>
+  <div class="endpoint"><span class="verb del">DELETE</span>/webhooks/{id}</div>
+  <div class="code" data-label="Request"><pre>curl -X POST https://mail.example.com/api/v1/webhooks \
+  -H "Authorization: Bearer $MAILVESPER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "url": "https://yourapp.com/sendline/webhook", "events": ["email.unsubscribed", "email.complained"], "description": "Your app" }'</pre></div>
+  <p><code>events</code> takes event names from the table above, or <code>["*"]</code> for all. The <code>201</code> response holds the <code>endpoint</code> and its signing <code>secret</code>; the secret isn’t returned again by the API, so store it.</p>
+</section>
+
+<section id="verify">
+  <h2>Verifying signatures</h2>
+  <p>Every webhook is signed using the <a href="https://www.standardwebhooks.com/" rel="noopener">Standard Webhooks</a> scheme, so you can also use their libraries. Three headers come with each request:</p>
+  <div class="code"><pre>webhook-id: msg_01jbza…
+webhook-timestamp: 1793011205
+webhook-signature: v1,K5oZfzN95Z9UVu1EsfQmfVNQhnkZ2pj9o9NDN/H/pI4=</pre></div>
+  <p>The signature is <code>base64(HMAC-SHA256(key, "{webhook-id}.{webhook-timestamp}.{body}"))</code>, where <code>key</code> is your endpoint’s secret without the <code>whsec_</code> prefix, base64-decoded. Find the secret on the endpoint in the app. Always check the <strong>raw</strong> body before parsing it, and reject old timestamps to stop replays.</p>
+  <div class="code" data-label="Verify">
+<pre data-lang="Node">import crypto from 'node:crypto';
+
+// headers: the request headers; rawBody: the body exactly as received (a string).
+export function verifyMailVesper(secret, headers, rawBody) {
+  const id = headers['webhook-id'], timestamp = headers['webhook-timestamp'], signatures = headers['webhook-signature'] || '';
+  if (!id || !timestamp || Math.abs(Date.now() / 1000 - Number(timestamp)) &gt; 300) return false; // older than 5 minutes: reject
+  const key = Buffer.from(secret.replace(/^whsec_/, ''), 'base64');
+  const expected = Buffer.from(crypto.createHmac('sha256', key).update(`${id}.${timestamp}.${rawBody}`).digest('base64'));
+  return signatures.split(' ').some((s) =&gt; {
+    const [version, sig] = s.split(',');
+    const given = Buffer.from(sig || '');
+    return version === 'v1' &amp;&amp; given.length === expected.length &amp;&amp; crypto.timingSafeEqual(given, expected);
+  });
+}</pre>
+<pre data-lang="PHP">// $headers: lower-case header names; $rawBody: file_get_contents('php://input').
+function verify_sendline(string $secret, array $headers, string $rawBody): bool
+{
+    $id = $headers['webhook-id'] ?? '';
+    $timestamp = $headers['webhook-timestamp'] ?? '';
+    if ($id === '' || ! ctype_digit($timestamp) || abs(time() - (int) $timestamp) &gt; 300) {
+        return false; // older than 5 minutes: reject
+    }
+    $key = base64_decode(preg_replace('/^whsec_/', '', $secret));
+    $expected = base64_encode(hash_hmac('sha256', "$id.$timestamp.$rawBody", $key, true));
+    foreach (explode(' ', $headers['webhook-signature'] ?? '') as $part) {
+        [$version, $sig] = array_pad(explode(',', $part, 2), 2, '');
+        if ($version === 'v1' &amp;&amp; hash_equals($expected, $sig)) {
+            return true;
+        }
+    }
+
+    return false;
+}</pre>
+  </div>
+  <p>Rotating the secret in the app takes effect for the next delivery.</p>
+</section>
+
+<section id="journey-webhooks">
+  <h2>Journey webhooks</h2>
+  <p>A journey’s <strong>Send webhook</strong> step POSTs the contact and what started the journey to your URL. It’s signed the same way as event webhooks, with the journey’s own secret: owners and admins can reveal it on the step in the journey editor.</p>
+  <div class="code" data-label="POST to your URL"><pre>{
+  "type": "journey.step",
+  "journey": { "id": "01jbzb…", "name": "Welcome series" },
+  "run_id": "01jbzc…",
+  "contact": { "id": "01jbz9…", "email": "amara@example.com", "first_name": "Amara", "fields": { "plan": "pro" }, … },
+  "trigger": { "event": "order_placed", "properties": { "order_id": "1042" } },
+  "sent_at": "2026-10-26T10:30:00Z"
+}</pre></div>
+  <p>The <code>User-Agent</code> is <code>MailVesper-Journeys/1.0</code>. Answer with a 2xx within 10 seconds; the step isn’t retried, and the journey records it as sent or failed and moves on. The same URL rules apply as for event webhooks.</p>
+</section>
+
+<section id="unsubscribe">
+  <h2>Unsubscribe headers</h2>
+  <p>Marketing email, email with a <code>topic</code>, and email with <code>"unsubscribe": true</code> get the headers Gmail and Yahoo require of bulk senders (RFC 8058 one-click):</p>
+  <div class="code"><pre>List-Unsubscribe: &lt;https://mail.example.com/api/v1/unsubscribe/…&gt;
+List-Unsubscribe-Post: List-Unsubscribe=One-Click</pre></div>
+  <p>Unsubscribes take effect immediately: the address joins your suppression list, marketing stops (transactional email still arrives), and an <code>email.unsubscribed</code> webhook is sent. <code>{{ unsubscribe_url }}</code> links to a page where people can unsubscribe or, if you use topics, choose what they still want.</p>
+</section>
+</main>
+</div>
+<script src="/docs/docs.js?v=1"></script>
+</body>
+</html>

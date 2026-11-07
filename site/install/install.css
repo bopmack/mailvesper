@@ -1,0 +1,30 @@
+/* The browser installer: the sign-in pages' look, one column. */
+.in-au { grid-template-columns: minmax(0, 1fr); }
+.in-au .au-card { max-width: 520px; }
+.checks { display: grid; gap: 0; padding: 0; margin: 4px 0 16px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.checks li { list-style: none; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; padding: 10px 12px; background: var(--surface); }
+.checks li + li { border-top: 1px solid var(--border); }
+.checks b { font-size: 13.5px; font-weight: 600; display: block; }
+.checks small { font-size: 12px; color: var(--text-3); overflow-wrap: anywhere; }
+.checks .ok { color: var(--ok); } .checks .bad { color: var(--bad); } .checks .warn { color: var(--warn); }
+.checks .mk { padding-top: 2px; }
+.row2 { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; }
+.in-sec { font-size: 13px; font-weight: 650; color: var(--text-2); margin: 18px 0 8px; }
+.prog { display: grid; gap: 10px; padding: 0; margin: 6px 0 18px; }
+.prog li { list-style: none; display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--text-3); }
+.prog li.done { color: var(--text); } .prog li.done .mk { color: var(--ok); } .prog li.now { color: var(--text); } .prog li.bad { color: var(--bad); }
+.prog .mk { width: 16px; display: inline-grid; place-items: center; }
+.cron { font-family: var(--mono); font-size: 12px; line-height: 1.5; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; overflow-wrap: anywhere; user-select: all; }
+.btn-row { display: flex; gap: 8px; margin-top: 12px; }
+.btn-row .btn { flex: 1; }
+.au-body ol.how { padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--text-2); margin: 8px 0 0; }
+@media (max-width: 520px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+.in-au a.btn { text-decoration: none; }
+.ready { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 14px; background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.ready svg { width: 22px; height: 22px; }
+details.more { margin: 4px 0 16px; font-size: 13px; }
+details.more summary { cursor: pointer; color: var(--text-2); font-weight: 600; padding: 6px 0; }
+details.more[open] summary { margin-bottom: 8px; }
+.faint-note { font-size: 12.5px; line-height: 1.55; color: var(--text-3); margin: 6px 0 10px; }
+.cron-steps li { margin-bottom: 8px; }
+.cron-steps .cron { margin-top: 8px; }

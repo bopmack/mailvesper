@@ -1,0 +1,22 @@
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=example-shop.com;
+ i=@example-shop.com; q=dns/txt; s=sel1; t=1793468851; h=from : to :
+ subject : date : message-id;
+ bh=q6hbYPAAmjG3btlysiHZif51EqnXHY6Xnq6DZmZIjTw=;
+ b=n8Ll0oIiXXMYDtF0sbuJvhKCpsezMCW/ADDXxItD55xgIdRAAQFfLiBROL7MfOd30xajx
+ u5QS6J7nopHsMT0zXZorsZ1gd11hcyGPDrcfJIa8S/hUy7Oviu09o3Np2j4JJ6EF6DB9svW
+ ac49Q7FUl98NKDDV3bZcJwzmLGem3H5jyjeoT/Oh3jtKb1LeeN0vpomoQNUBsMG4WQZ9wbI
+ ZV7TpTsXjrR78xht+ioQGVbVn8rZGnHDSgkasIzZ/rkpAzeEcvBfO+VtnXa1wezNe6wlylM
+ JtAAtaj4HaovGTTAquBqppIapMxbruj+KkTMJIFnhGS54BjgWIHIOzTOMAqQ==
+From: Ada Example <hello@example-shop.com>
+To: reader@example.net
+Subject:   Spring   sale
+ starts today
+Date: Sat, 31 Oct 2026 10:00:00 +0000
+Message-ID: <abc123@example-shop.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Hello  there,   
+Our   sale starts today.	 
+
+

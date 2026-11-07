@@ -1,0 +1,451 @@
+{
+ "settings": {
+  "width": 600,
+  "bodyBg": "#F4F4F5",
+  "contentBg": "#FFFFFF",
+  "font": "Helvetica, Arial, sans-serif",
+  "text": "#3F3F46",
+  "heading": "#18181B",
+  "link": "#5B5BF7",
+  "btn": "#5B5BF7",
+  "radius": 8,
+  "preheader": "Three things you asked for are live"
+ },
+ "rows": [
+  {
+   "id": "rxfqk2",
+   "layout": [
+    1,
+    2
+   ],
+   "cells": [
+    [
+     {
+      "id": "bxfqj0",
+      "type": "image",
+      "props": {
+       "src": "logo",
+       "alt": "Acme",
+       "href": "",
+       "width": 72,
+       "align": "left",
+       "radius": 0,
+       "pad": [
+        8,
+        28,
+        8,
+        28
+       ]
+      }
+     }
+    ],
+    [
+     {
+      "id": "bxfqk1",
+      "type": "menu",
+      "props": {
+       "items": "Product, Pricing, Blog",
+       "align": "right",
+       "pad": [
+        8,
+        28,
+        8,
+        28
+       ]
+      }
+     }
+    ]
+   ],
+   "bg": "",
+   "pad": [
+    12,
+    12
+   ],
+   "stack": true,
+   "hide": ""
+  },
+  {
+   "id": "rxfqk7",
+   "layout": [
+    1
+   ],
+   "cells": [
+    [
+     {
+      "id": "bxfqk3",
+      "type": "image",
+      "props": {
+       "src": "hero",
+       "alt": "The new Acme dashboard",
+       "href": "",
+       "width": 100,
+       "align": "center",
+       "radius": 12,
+       "pad": [
+        8,
+        28,
+        8,
+        28
+       ]
+      }
+     },
+     {
+      "id": "bxfqk4",
+      "type": "heading",
+      "props": {
+       "html": "Your dashboard just got faster",
+       "size": 30,
+       "align": "left",
+       "weight": 700,
+       "pad": [
+        8,
+        28,
+        8,
+        28
+       ]
+      }
+     },
+     {
+      "id": "bxfqk5",
+      "type": "text",
+      "props": {
+       "html": "Hi {{first_name|\"there\"}}, three things you asked for are live: instant search, shared views and a new activity timeline.",
+       "size": 16,
+       "lh": 1.6,
+       "align": "left",
+       "pad": [
+        8,
+        28,
+        8,
+        28
+       ]
+      }
+     },
+     {
+      "id": "bxfqk6",
+      "type": "button",
+      "props": {
+       "label": "See what’s new",
+       "href": "https://acme-corp.io",
+       "bg": "",
+       "color": "#FFFFFF",
+       "radius": null,
+       "full": false,
+       "align": "left",
+       "size": 16,
+       "pad": [
+        12,
+        28,
+        12,
+        28
+       ]
+      }
+     }
+    ]
+   ],
+   "bg": "",
+   "pad": [
+    8,
+    16
+   ],
+   "stack": true,
+   "hide": ""
+  },
+  {
+   "id": "rxfqkh",
+   "layout": [
+    1,
+    1,
+    1
+   ],
+   "cells": [
+    [
+     {
+      "id": "bxfqk8",
+      "type": "image",
+      "props": {
+       "src": "f1",
+       "alt": "",
+       "href": "",
+       "width": 34,
+       "align": "left",
+       "radius": 0,
+       "pad": [
+        8,
+        16,
+        4,
+        16
+       ]
+      }
+     },
+     {
+      "id": "bxfqk9",
+      "type": "heading",
+      "props": {
+       "html": "Instant search",
+       "size": 16,
+       "align": "left",
+       "weight": 700,
+       "pad": [
+        4,
+        16,
+        2,
+        16
+       ]
+      }
+     },
+     {
+      "id": "bxfqka",
+      "type": "text",
+      "props": {
+       "html": "Find any record in milliseconds.",
+       "size": 14,
+       "lh": 1.6,
+       "align": "left",
+       "pad": [
+        2,
+        16,
+        8,
+        16
+       ]
+      }
+     }
+    ],
+    [
+     {
+      "id": "bxfqkb",
+      "type": "image",
+      "props": {
+       "src": "f2",
+       "alt": "",
+       "href": "",
+       "width": 34,
+       "align": "left",
+       "radius": 0,
+       "pad": [
+        8,
+        16,
+        4,
+        16
+       ]
+      }
+     },
+     {
+      "id": "bxfqkc",
+      "type": "heading",
+      "props": {
+       "html": "Shared views",
+       "size": 16,
+       "align": "left",
+       "weight": 700,
+       "pad": [
+        4,
+        16,
+        2,
+        16
+       ]
+      }
+     },
+     {
+      "id": "bxfqkd",
+      "type": "text",
+      "props": {
+       "html": "Save a view, share it with your team.",
+       "size": 14,
+       "lh": 1.6,
+       "align": "left",
+       "pad": [
+        2,
+        16,
+        8,
+        16
+       ]
+      }
+     }
+    ],
+    [
+     {
+      "id": "bxfqke",
+      "type": "image",
+      "props": {
+       "src": "f3",
+       "alt": "",
+       "href": "",
+       "width": 34,
+       "align": "left",
+       "radius": 0,
+       "pad": [
+        8,
+        16,
+        4,
+        16
+       ]
+      }
+     },
+     {
+      "id": "bxfqkf",
+      "type": "heading",
+      "props": {
+       "html": "Activity timeline",
+       "size": 16,
+       "align": "left",
+       "weight": 700,
+       "pad": [
+        4,
+        16,
+        2,
+        16
+       ]
+      }
+     },
+     {
+      "id": "bxfqkg",
+      "type": "text",
+      "props": {
+       "html": "See every change, in order.",
+       "size": 14,
+       "lh": 1.6,
+       "align": "left",
+       "pad": [
+        2,
+        16,
+        8,
+        16
+       ]
+      }
+     }
+    ]
+   ],
+   "bg": "",
+   "pad": [
+    16,
+    12
+   ],
+   "stack": true,
+   "hide": ""
+  },
+  {
+   "id": "rxfqkl",
+   "layout": [
+    1
+   ],
+   "cells": [
+    [
+     {
+      "id": "bxfqki",
+      "type": "heading",
+      "props": {
+       "html": "Ready when you are",
+       "size": 24,
+       "align": "center",
+       "weight": 700,
+       "pad": [
+        8,
+        28,
+        8,
+        28
+       ],
+       "color": "#FFFFFF"
+      }
+     },
+     {
+      "id": "bxfqkj",
+      "type": "text",
+      "props": {
+       "html": "Start a 14-day trial. No card needed.",
+       "size": 16,
+       "lh": 1.6,
+       "align": "center",
+       "pad": [
+        8,
+        28,
+        8,
+        28
+       ],
+       "color": "#E0E0FF"
+      }
+     },
+     {
+      "id": "bxfqkk",
+      "type": "button",
+      "props": {
+       "label": "Start free trial",
+       "href": "https://acme-corp.io",
+       "bg": "#FFFFFF",
+       "color": "#4343D6",
+       "radius": null,
+       "full": false,
+       "align": "center",
+       "size": 16,
+       "pad": [
+        12,
+        28,
+        12,
+        28
+       ]
+      }
+     }
+    ]
+   ],
+   "bg": "#5B5BF7",
+   "pad": [
+    28,
+    28
+   ],
+   "stack": true,
+   "hide": ""
+  },
+  {
+   "id": "rxfqko",
+   "layout": [
+    1
+   ],
+   "cells": [
+    [
+     {
+      "id": "bxfqkm",
+      "type": "social",
+      "props": {
+       "nets": [
+        "x",
+        "instagram",
+        "linkedin",
+        "youtube"
+       ],
+       "align": "center",
+       "size": 32,
+       "pad": [
+        12,
+        28,
+        12,
+        28
+       ]
+      }
+     },
+     {
+      "id": "bxfqkn",
+      "type": "footer",
+      "props": {
+       "company": "Acme Inc",
+       "address": "12 Marina Road, Lagos, Nigeria",
+       "note": "You are receiving this because you signed up at acme-corp.io.",
+       "pad": [
+        16,
+        28,
+        24,
+        28
+       ]
+      }
+     }
+    ]
+   ],
+   "bg": "#FAFAFA",
+   "pad": [
+    16,
+    16
+   ],
+   "stack": true,
+   "hide": ""
+  }
+ ]
+}

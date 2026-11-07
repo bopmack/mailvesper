@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="MailVesper">
+  <rect width="32" height="32" rx="8" fill="#17160F"/>
+  <!-- The send line: departs at the orange station, curves like an S, arrives at the arrow -->
+  <path d="M7.5 22.5c5.5 0 5-8.5 10.5-8.5h4.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M19.8 10.4 23.6 14l-3.8 3.6" fill="none" stroke="#FF5B1F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="7.5" cy="22.5" r="2.4" fill="#FF5B1F"/>
+</svg>

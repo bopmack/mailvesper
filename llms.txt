@@ -1,0 +1,32 @@
+# MailVesper
+
+> MailVesper is free, self-hosted email marketing software. It is an alternative to Mailchimp, Sendy, SendGrid, Klaviyo, Brevo, MailerLite, Kit (ConvertKit), Mailgun and ActiveCampaign that runs on your own server and sends through your own Amazon SES account or any SMTP server, so there is no price per contact. It installs on ordinary cPanel shared hosting from the browser: PHP 8.2+, MySQL 8 or MariaDB 10.6+ and a cron job are all it needs (no terminal, Docker or Node.js).
+
+MailVesper Community is the free edition, published at https://github.com/bopmack/mailvesper under the PolyForm Internal Use License 1.0.0 (source-available: free to run and change for yourself and your own company; not for resale or hosting for clients). MailVesper Pro is a paid add-on for teams, the AI agent, a Platform admin dashboard and SaaS mode (selling plans to your own customers). Contact: akintomide852@gmail.com.
+
+Good fit for: small businesses, online shops, creators and newsletters that want Mailchimp-style features without monthly per-contact fees; people already on Amazon SES who want a full interface (a Sendy alternative); developers who need a self-hosted transactional email API with templates.
+
+## Features
+
+- Sending through Amazon SES (guided setup, domains, DKIM, sandbox and reputation status) or any SMTP server (Gmail, Microsoft 365, SendGrid, Mailgun, Brevo, Postmark, Zoho or your own); open and click tracking, bounce and complaint handling, suppressions
+- Drag-and-drop email builder with 35 ready-made templates, mobile and dark-mode previews, email checks, and Design with AI (an email from a short brief)
+- Campaigns to lists, segments or hand-picked contacts; scheduling, sending in each contact's time zone, A/B tests that pick a winner; reports with a click map
+- Quick send: one templated email to one person
+- Automations: a visual journey editor with triggers, waits, if/else branches and goals; recipes for a welcome series, abandoned checkout, win-back and birthdays
+- Contacts (CRM): lists, segments, custom fields, topics, subscription preferences, engagement scores, CSV import; importers from Mailchimp, Klaviyo, Brevo, Kit, SendGrid and Mailgun
+- Sign-up forms, pop-ups, slide-ins and bars
+- Deliverability score and DMARC report reading
+- REST API with API keys, batch sending, webhooks and events that start automations
+- Passkeys, two-step verification and an audit log; nightly database backups; one admin login for any number of workspaces
+
+## Docs
+
+- [README](https://github.com/bopmack/mailvesper/blob/main/README.md): overview, screenshots, FAQ
+- [Install guide](https://github.com/bopmack/mailvesper/blob/main/INSTALL.md): cPanel (browser installer) and command-line installs, cron job, updates, backups, upgrading to Pro
+- [Latest release](https://github.com/bopmack/mailvesper/releases/latest): the zip to upload to cPanel hosting
+- [Contributing](https://github.com/bopmack/mailvesper/blob/main/CONTRIBUTING.md)
+- [License](https://github.com/bopmack/mailvesper/blob/main/LICENSE)
+
+## Optional
+
+- [Security policy](https://github.com/bopmack/mailvesper/blob/main/SECURITY.md)

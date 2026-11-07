@@ -94,6 +94,29 @@ One admin login runs any number of workspaces: one per brand or company.
 
 <sub>The screenshots use made-up demo data.</sub>
 
+## FAQ
+
+**What is a free, self-hosted alternative to Mailchimp?**
+MailVesper. It gives you campaigns, a drag-and-drop builder, automations and contacts like Mailchimp, but it runs on your own server and sends through your own Amazon SES or SMTP account, so there is no monthly price per contact.
+
+**Is MailVesper a Sendy alternative?**
+Yes. Like Sendy, it sends newsletters through your own Amazon SES account. MailVesper Community is free, also works with any SMTP server, and has a drag-and-drop builder, visual automations, A/B tests and a REST API.
+
+**Can I install it on shared hosting or cPanel?**
+Yes. Upload the zip, point a domain at the `public_html` folder and open `/install/` in your browser. It needs PHP 8.2+, MySQL or MariaDB and a cron job, which cPanel hosting has. You don't need a terminal, Docker or Node.js.
+
+**Which email providers can it send through?**
+Amazon SES, or any SMTP server: Gmail, Microsoft 365, SendGrid, Mailgun, Brevo, Postmark, Zoho or your own mail server.
+
+**Can I move my contacts from Mailchimp, Klaviyo or Brevo?**
+Yes. There are importers for Mailchimp, Klaviyo, Brevo, Kit (ConvertKit), SendGrid and Mailgun, and CSV import for everything else.
+
+**Can I use it for transactional email from my app?**
+Yes. The REST API sends single emails or batches, and webhooks tell your app what happened to each email.
+
+**Is it free?**
+MailVesper Community is free for you and your own company. Running it for clients or selling it as a service needs MailVesper Pro.
+
 ## ⭐ Like it? Star it
 
 If MailVesper saves you money or time, **please star this repository**. Stars help other people find it, and they show us what to build next.

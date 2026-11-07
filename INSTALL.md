@@ -216,7 +216,7 @@ Social sign-in (Google, Microsoft, GitHub, Apple) is optional: see [docs/social-
 
 MailVesper Pro installs on top of Community and uses the same database. Nothing is migrated or reinstalled.
 
-1. Buy Pro at [licenses.fanstext.com](https://licenses.fanstext.com/). You receive a license key and a download link.
+1. Get Pro by emailing [akintomide852@gmail.com](mailto:akintomide852@gmail.com?subject=MailVesper%20Pro). You receive a license key and a download link.
 2. Unzip the download inside `backend/`. It creates `backend/pro/`.
 3. Run `php artisan migrate --force && php artisan optimize`.
 4. In the app, open **Settings → General**, choose **I have a license key**, paste the key and save.

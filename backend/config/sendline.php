@@ -24,7 +24,7 @@ return [
     'mail_encryption' => 'tls',
     'mail_from_name' => null,
     // Where "Upgrade to Pro" links go.
-    'pro_url' => $env('PRO_URL', 'https://licenses.fanstext.com/'),
+    'pro_url' => $env('PRO_URL', 'mailto:akintomide852@gmail.com?subject=MailVesper%20Pro'),
 
     // Operations: slow-query threshold, daily backups (MySQL/MariaDB) and the restore-drill database (must not be the live one).
     'slow_query_ms' => (int) env('SLOW_QUERY_MS', 500),

@@ -59,7 +59,7 @@ it('has no Pro features: their endpoints don’t exist, and /me says Community w
     $this->getJson('/v1/pro/assets/agent.js')->assertNotFound();
     $e = $this->getJson('/v1/me')->assertOk()->json('edition');
     expect($e)->toMatchArray(['name' => 'community', 'features' => [], 'scripts' => [], 'license' => null])
-        ->and($e['upgrade_url'])->toStartWith('https://');
+        ->and($e['upgrade_url'])->toStartWith('mailto:');
     expect(app(Edition::class)->has('agent'))->toBeFalse();
 });
 

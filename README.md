@@ -51,6 +51,8 @@ php artisan mailvesper:install
 
 **Requirements:** PHP 8.2+, MySQL 8 or MariaDB 10.6+, and a cron job. Nothing else.
 
+**Need help installing?** Email [akintomide852@gmail.com](mailto:akintomide852@gmail.com?subject=MailVesper%20installation) and we'll help you get it running.
+
 ## Features
 
 | | |
@@ -132,9 +134,9 @@ Pro is a paid add-on, installed on top of Community and using the same database.
 - the Platform dashboard: system health, error log, alerts, backups with restore drills and off-site copies, more admins, social sign-in and white-label branding;
 - SaaS mode, to sell plans to your own customers, with Stripe and Paystack billing.
 
-Pro is also the license you need to run MailVesper for clients or as a paid service. Pro features show in Community as locked previews. See [licenses.fanstext.com](https://licenses.fanstext.com/).
+Pro is also the license you need to run MailVesper for clients or as a paid service. Pro features show in Community as locked previews. To ask about Pro, email [akintomide852@gmail.com](mailto:akintomide852@gmail.com?subject=MailVesper%20Pro).
 
-**Want it installed for you?** We can install and set up MailVesper on your own server or hosting account. Get in touch through [licenses.fanstext.com](https://licenses.fanstext.com/).
+**Want it installed for you?** We can install and set up MailVesper on your own server or hosting account. Email [akintomide852@gmail.com](mailto:akintomide852@gmail.com?subject=MailVesper%20installation).
 
 ## License
 
@@ -143,7 +145,7 @@ MailVesper Community is **free and source-available**, under the [PolyForm Inter
 - **You may** install it, run it and change it, for yourself and for your own company, including sending email to your own customers and subscribers.
 - **You may not** sell it, resell it, run it for clients or other companies, offer it as a hosted service, or publish a changed copy outside this repository.
 
-For anything else, including agencies and paid services, get [MailVesper Pro](https://licenses.fanstext.com/). The license text is the authority; this summary is only a guide. Third-party packages installed by Composer keep their own licenses.
+For anything else, including agencies and paid services, get MailVesper Pro: email [akintomide852@gmail.com](mailto:akintomide852@gmail.com?subject=MailVesper%20Pro). The license text is the authority; this summary is only a guide. Third-party packages installed by Composer keep their own licenses.
 
 <div align="center">
 <br>

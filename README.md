@@ -6,7 +6,7 @@
 
 **Self-hosted email marketing. Your server, your contacts, your sending price.**
 
-A free alternative to Mailchimp, Klaviyo and SendGrid that installs on ordinary cPanel hosting in a few minutes, from your browser. Send newsletters, campaigns, automations and transactional email through your own Amazon SES account or any SMTP server.
+A free alternative to Mailchimp, Sendy, SendGrid, Klaviyo, Brevo, MailerLite, Kit (ConvertKit), Mailgun and ActiveCampaign that installs on ordinary cPanel hosting in a few minutes, from your browser. Send newsletters, campaigns, automations and transactional email through your own Amazon SES account or any SMTP server.
 
 [![Latest release](https://img.shields.io/github/v/release/bopmack/mailvesper?label=release&color=5b5bf6)](https://github.com/bopmack/mailvesper/releases/latest)
 [![GitHub stars](https://img.shields.io/github/stars/bopmack/mailvesper?style=flat&color=f5b301)](https://github.com/bopmack/mailvesper/stargazers)

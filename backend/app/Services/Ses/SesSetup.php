@@ -115,6 +115,7 @@ class SesSetup
             } catch (AwsException $e) {
                 return ['status' => 'done', 'detail' => 'Topic ready (its access policy was left as it was).'];
             }
+            $this->retryPolicy($conn);
 
             return null;
         });
@@ -167,8 +168,37 @@ class SesSetup
     }
 
     /** Refreshes sending limits, sandbox state and reputation. */
+    /**
+     * Asks SNS to keep retrying a notice for about 45 minutes if our server doesn't answer (its default gives up after a
+     * few tries), so a server restart or a busy minute loses nothing. Best effort; remembered once it worked.
+     */
+    public function retryPolicy(SesConnection $conn): bool
+    {
+        if (! $conn->sns_topic_arn) {
+            return false;
+        }
+        try {
+            $this->aws->sns($conn)->setTopicAttributes(['TopicArn' => $conn->sns_topic_arn, 'AttributeName' => 'DeliveryPolicy', 'AttributeValue' => (string) json_encode([
+                'http' => ['defaultHealthyRetryPolicy' => ['minDelayTarget' => 20, 'maxDelayTarget' => 300, 'numRetries' => 20, 'numNoDelayRetries' => 0,
+                    'numMinDelayRetries' => 2, 'numMaxDelayRetries' => 6, 'backoffFunction' => 'exponential'], 'disableSubscriptionOverrides' => false],
+            ])]);
+        } catch (AwsException $e) {
+            report($e);
+
+            return false;
+        }
+        $steps = $conn->setup_steps ?? [];
+        $steps['retry_policy'] = ['status' => 'done'];
+        $conn->setup_steps = $steps;
+
+        return true;
+    }
+
     public function sync(SesConnection $conn): SesConnection
     {
+        if (empty(($conn->setup_steps ?? [])['retry_policy']) && $conn->subscription_confirmed_at) {
+            $this->retryPolicy($conn); // connections made before this existed get it on the next hourly sync
+        }
         try {
             $this->applyAccount($conn, $this->aws->ses($conn)->getAccount());
             if ($conn->status === 'error' && $conn->last_error && str_contains($conn->last_error, 'AWS didn’t accept')) {

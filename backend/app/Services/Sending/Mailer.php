@@ -206,6 +206,7 @@ class Mailer
         $unsub = $m->unsubscribe_token ? self::unsubscribeUrl($m->unsubscribe_token) : '';
         $vars = $p['variables'] + ((array) ($p['recipient_vars'][mb_strtolower($to)] ?? [])) + ($contact ? ContactService::mergeVars($contact) : []) + ['email' => $to, 'tracking_code' => $m->tracking_code,
             'unsubscribe_url' => $unsub, 'preferences_url' => $unsub, 'web_version_url' => WebViewController::url($m->id)];
+        $vars = Compose::tidyNames($vars);
         $html = $p['html'] !== null ? Compose::merge((string) $p['html'], $vars, true) : null;
         $text = $p['text'] !== null ? Compose::merge((string) $p['text'], $vars, false) : ($html !== null ? Compose::htmlToText($html) : null);
 

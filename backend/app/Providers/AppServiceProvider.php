@@ -97,6 +97,6 @@ class AppServiceProvider extends ServiceProvider
 
         // SES events from SNS: generous, per connection token.
         RateLimiter::for('relay', fn (Request $r) => Limit::perMinute(3000)->by('relay:'.sha1((string) $r->route('token'))));
-        RateLimiter::for('sns', fn (Request $r) => Limit::perMinute(3000)->by('sns:'.sha1((string) $r->route('token'))));
+        RateLimiter::for('sns', fn (Request $r) => Limit::perMinute(60000)->by('sns:'.sha1((string) $r->route('token')))); // storing a notice is cheap; a big send makes thousands a minute
     }
 }

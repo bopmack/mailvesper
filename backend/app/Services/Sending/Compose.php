@@ -43,7 +43,8 @@ class Compose
             return '=?UTF-8?B?'.base64_encode($name).'?= <'.$email.'>';
         }
 
-        return '"'.addcslashes($name, '"\\').'" <'.$email.'>';
+        // Quoted only when the name needs it (commas, dots, brackets…): "Acme <a@b.com>", like a person's mail app.
+        return preg_match('/[()<>\[\]:;@\\,."]/', $name) ? '"'.addcslashes($name, '"\\').'" <'.$email.'>' : $name.' <'.$email.'>';
     }
 
     public static function domainOf(string $email): string
@@ -52,7 +53,8 @@ class Compose
     }
 
     /**
-     * Replaces {{ name }} and {{ name | fallback }}. Values are HTML-escaped when $html is true.
+     * Replaces {{ name }} and {{ name | fallback }}. A fallback can name other tags to try first, then the text:
+     * {{ real_first_name | first_name | there }}. Values are HTML-escaped when $html is true.
      *
      * @param  array<string, scalar|null>  $vars
      */
@@ -60,13 +62,48 @@ class Compose
     {
         return (string) preg_replace_callback('/\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:\|\s*([^}]*?))?\s*\}\}/', function ($m) use ($vars, $html) {
             $value = $vars[$m[1]] ?? null;
-            if ($value === null || $value === '') {
-                $value = isset($m[2]) ? trim($m[2], " \t\"'") : '';
+            if (($value === null || $value === '') && isset($m[2])) {
+                $parts = explode('|', $m[2]);
+                $last = count($parts) - 1;
+                foreach ($parts as $i => $part) {
+                    $part = trim($part);
+                    if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $part) && array_key_exists($part, $vars)) {
+                        $value = $vars[$part]; // another tag: its value, or on to the next fallback
+                    } elseif (count($parts) > 1 && $i < $last && ! preg_match('/^["\']/', $part)) {
+                        continue; // a tag this person doesn't have
+                    } else {
+                        $value = trim($part, " \t\"'");
+                    }
+                    if ($value !== null && $value !== '') {
+                        break;
+                    }
+                }
             }
+            $value ??= '';
             $value = (string) $value;
 
             return $html ? htmlspecialchars($value, ENT_QUOTES | ENT_HTML5, 'UTF-8') : $value;
         }, $template);
+    }
+
+    /**
+     * Names typed in capitals or all lower case ("AMARACHI", "mary") read as "Amarachi" and "Mary" in an email; names
+     * already in mixed case ("McDonald", "DeShawn") are left alone. Only name placeholders (first_name, last_name,
+     * real_first_name…), never other details.
+     *
+     * @param  array<string, mixed>  $vars
+     * @return array<string, mixed>
+     */
+    public static function tidyNames(array $vars): array
+    {
+        foreach ($vars as $k => $v) {
+            if (is_string($v) && preg_match('/(^|_)(first|last)_name$/', (string) $k) && preg_match('/\p{L}{2}/u', $v)
+                && ($v === mb_strtoupper($v) || $v === mb_strtolower($v))) {
+                $vars[$k] = mb_convert_case(mb_strtolower($v), MB_CASE_TITLE, 'UTF-8');
+            }
+        }
+
+        return $vars;
     }
 
     /** Readable plain text from HTML: keeps links as "text (url)", paragraphs and list items. */

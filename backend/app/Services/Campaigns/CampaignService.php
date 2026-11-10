@@ -9,13 +9,16 @@ use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\ContactList;
 use App\Models\Segment;
+use App\Models\SesConnection;
 use App\Models\SiteConnection;
 use App\Models\Workspace;
 use App\Services\Connect\SiteAudience;
 use App\Services\Contacts\SegmentQuery;
 use App\Services\Design\DocValidator;
 use App\Services\Design\EmailRenderer;
+use App\Services\Sending\Sender;
 use App\Services\Sending\Senders;
+use App\Services\Tracking\TrackingDomains;
 use App\Support\Edition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -97,6 +100,67 @@ class CampaignService
     }
 
     /**
+     * What a campaign's emails are made of: the design, or a plain-text letter. A letter is text only, with no
+     * unsubscribe header (the opt-out is in its words) and is sent without tracking: Gmail files it like a personal
+     * email, in Primary, where designed bulk email lands in Promotions.
+     *
+     * @param  array<string, string>  $tags
+     * @return array<string, mixed>
+     */
+    public static function content(Campaign $c, array $tags = []): array
+    {
+        if ($c->format === 'plain') {
+            // With tracking, a plain-looking HTML copy carries SES's open image and counted links (tested: still Primary).
+            return ['html' => $c->letter_tracking ? self::letterHtml((string) $c->text_body) : null, 'text' => (string) $c->text_body, 'unsubscribe' => false,
+                'tags' => $tags + [Sender::LETTER_TAG => $c->letter_tracking ? Sender::TRACKED_LETTER : 'letter']];
+        }
+
+        return ['html' => $c->html, 'tags' => $tags];
+    }
+
+    /**
+     * A letter's words as HTML that looks like plain text: one plain font, paragraphs, line breaks, and web addresses
+     * as links showing just the address. Placeholders are left for the merge.
+     */
+    public static function letterHtml(string $text): string
+    {
+        $part = function (string $s): string {
+            $out = '';
+            foreach (preg_split('/(\{\{[^}]*\}\})/', $s, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [] as $bit) {
+                $out .= str_starts_with($bit, '{{') ? $bit : (string) preg_replace_callback('#https?://[^\s<]+[^\s<.,;:!?)\]]#', function ($m) {
+                    $label = rtrim((string) preg_replace('#^https?://(www\.)?#', '', $m[0]), '/');
+
+                    return '<a href="'.$m[0].'" style="color:#1a0dab">'.$label.'</a>';
+                }, htmlspecialchars($bit, ENT_QUOTES, 'UTF-8'));
+            }
+
+            return nl2br($out);
+        };
+        $paras = preg_split("/\R{2,}/", trim(str_replace("\r\n", "\n", $text))) ?: [];
+
+        return '<!doctype html><html><body style="margin:0;padding:0"><div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222">'
+            .implode('', array_map(fn ($p) => '<p style="margin:0 0 14px">'.$part($p).'</p>', $paras)).'</div></body></html>';
+    }
+
+    /** A plain-text letter tells people how to stop hearing from you, in words ("…and we won't email you again") or with a link. */
+    public static function hasOptOut(string $text): bool
+    {
+        return (bool) preg_match('/\b(stop|unsubscribe|opt[ -]?out|remove you|take you off)\b|(email|hear from) (you|us) again|rather not (hear|get)|\{\{\s*(unsubscribe_url|preferences_url)/i', $text);
+    }
+
+    /** Before a letter goes out through SES: the events set without tracking must exist. */
+    public function readyForLetters(Workspace $ws): void
+    {
+        if (Senders::method($ws) !== Senders::SES) {
+            return; // SMTP: a text-only email has nothing to track
+        }
+        $conn = SesConnection::where('workspace_id', $ws->id)->first();
+        if (! $conn || ! app(TrackingDomains::class)->quietSet($conn)) {
+            throw new ApiException('not_ready', 'Amazon SES isn’t ready to send without tracking yet. Check Sending, then try again.', 422);
+        }
+    }
+
+    /**
      * What's missing before this campaign can go out. Empty when ready.
      *
      * @return list<array{key: string, message: string}>
@@ -134,7 +198,13 @@ class CampaignService
         if ($c->ab_enabled && (! $c->subject_b || trim($c->subject_b) === '')) {
             $p[] = ['key' => 'subject', 'message' => 'Write subject B for the A/B test, or turn the test off.'];
         }
-        if (! $c->html) {
+        if ($c->format === 'plain') {
+            if (trim((string) $c->text_body) === '') {
+                $p[] = ['key' => 'content', 'message' => 'Write the email.'];
+            } elseif (! self::hasOptOut((string) $c->text_body)) {
+                $p[] = ['key' => 'content', 'message' => 'Tell people how to stop hearing from you, for example “P.S. If you’d rather not hear from us again, just reply and let us know.” Marketing email must have a way out.'];
+            }
+        } elseif (! $c->html) {
             $p[] = ['key' => 'content', 'message' => 'Design the email.'];
         } elseif (! preg_match('/\{\{\s*(unsubscribe_url|preferences_url)/', $c->html)) {
             $p[] = ['key' => 'content', 'message' => 'Add an unsubscribe link (the Footer block has one). Marketing email must have it.'];

@@ -31,3 +31,21 @@ it('refuses headers MailVesper owns and header injection', function () {
         ->and(Compose::headerError(['X-A' => "a\r\nBcc: evil@x.com"]))->toContain('one line')
         ->and(Compose::headerError(['Bad Name' => 'x']))->toContain('letters');
 });
+
+it('falls back through other tags, then text', function () {
+    $tpl = 'Hi {{ real_first_name | first_name | there }},';
+    expect(Compose::merge($tpl, ['real_first_name' => 'Amarachi', 'first_name' => 'Val'], false))->toBe('Hi Amarachi,')
+        ->and(Compose::merge($tpl, ['real_first_name' => null, 'first_name' => 'Sara'], false))->toBe('Hi Sara,')
+        ->and(Compose::merge($tpl, ['real_first_name' => '', 'first_name' => null], false))->toBe('Hi there,')
+        ->and(Compose::merge($tpl, [], false))->toBe('Hi there,')
+        ->and(Compose::merge('{{ a | b }}', ['b' => '<x>'], true))->toBe('&lt;x&gt;')
+        ->and(Compose::merge('{{ a | first_name }}', ['first_name' => ''], false))->toBe('')
+        ->and(Compose::merge('{{ a | friend }}', [], false))->toBe('friend')
+        ->and(Compose::merge('{{ a | "your team" }}', [], false))->toBe('your team');
+});
+
+it('tidies names typed in capitals or lower case, and only names', function () {
+    expect(Compose::tidyNames(['first_name' => 'AMARACHI', 'last_name' => 'mary-ann o\'neil', 'real_first_name' => 'McDonald', 'real_last_name' => 'DeShawn', 'company' => 'IBM', 'first_name_x' => 'ABC']))
+        ->toBe(['first_name' => 'Amarachi', 'last_name' => 'Mary-Ann O\'neil', 'real_first_name' => 'McDonald', 'real_last_name' => 'DeShawn', 'company' => 'IBM', 'first_name_x' => 'ABC'])
+        ->and(Compose::tidyNames(['first_name' => 'J', 'last_name' => 'ÉMILIE']))->toBe(['first_name' => 'J', 'last_name' => 'Émilie']);
+});

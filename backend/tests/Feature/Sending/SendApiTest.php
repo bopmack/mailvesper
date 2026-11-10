@@ -47,7 +47,7 @@ it('sends through the customer’s SES with tracking and the configuration set',
     expect($m->status)->toBe('sent')->and($m->ses_message_id)->not->toBeNull()->and($m->subject)->toBe('Hi Amara')
         ->and($m->text)->toBe('Hello Amara');
     $req = $this->aws->argsFor('SendEmail')[0];
-    expect($req['FromEmailAddress'])->toBe('"Acme" <news@acme.com>')
+    expect($req['FromEmailAddress'])->toBe('Acme <news@acme.com>')
         ->and($req['Destination'])->toBe(['ToAddresses' => ['amara@example.com']])
         ->and($req['ConfigurationSetName'])->toBe('sendline-events')
         ->and($req['Content']['Simple']['Body']['Html']['Data'])->toBe('<p>Hello Amara</p>')

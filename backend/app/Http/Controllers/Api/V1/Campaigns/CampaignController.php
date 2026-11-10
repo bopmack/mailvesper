@@ -14,6 +14,7 @@ use App\Models\ContactList;
 use App\Models\EmailTemplate;
 use App\Models\Message;
 use App\Models\Segment;
+use App\Models\SiteConnection;
 use App\Models\Topic;
 use App\Models\Workspace;
 use App\Services\Audit;
@@ -62,7 +63,7 @@ class CampaignController extends Controller
         $c = $this->find($workspace, $id);
 
         return response()->json(['campaign' => $this->summary($c) + [
-            'doc' => $c->doc, 'html' => $c->html, 'size_kb' => $c->size_kb, 'checks' => $c->checks, 'estimate' => $this->estimateOrWhy($c), 'problems' => $this->service->problems($c),
+            'doc' => $c->doc, 'html' => $c->html, 'text_body' => $c->text_body, 'size_kb' => $c->size_kb, 'checks' => $c->checks, 'estimate' => $this->estimateOrWhy($c), 'problems' => $this->service->problems($c),
         ]]);
     }
 
@@ -95,6 +96,7 @@ class CampaignController extends Controller
             'subject' => ['sometimes', 'nullable', 'string', 'max:255'], 'subject_b' => ['sometimes', 'nullable', 'string', 'max:255'], 'preheader' => ['sometimes', 'nullable', 'string', 'max:300'],
             'ab_enabled' => ['sometimes', 'boolean'], 'ab_test_pct' => ['sometimes', 'integer', 'min:10', 'max:50'], 'ab_metric' => ['sometimes', Rule::in(['opens', 'clicks'])], 'ab_wait_hours' => ['sometimes', 'integer', 'min:1', 'max:48'],
             'doc' => ['sometimes', 'nullable'],
+            'format' => ['sometimes', Rule::in(['design', 'plain'])], 'text_body' => ['sometimes', 'nullable', 'string', 'max:20000'], 'letter_tracking' => ['sometimes', 'boolean'],
         ]);
         if (array_key_exists('people', $data)) {
             $data['audience_contacts'] = $this->people($workspace, $data['people']);
@@ -163,6 +165,9 @@ class CampaignController extends Controller
     public function send(Request $request, Workspace $workspace, string $id): JsonResponse
     {
         $this->requireEditor($request, 'send campaigns');
+        if ($this->find($workspace, $id)->format === 'plain') {
+            $this->service->readyForLetters($workspace);
+        }
         $c = $this->service->schedule($this->find($workspace, $id), $request->only(['mode', 'at', 'date', 'time', 'timezone']) + ['mode' => '']);
         Audit::log($c->status === 'sending' ? 'campaign.sent' : 'campaign.scheduled', $this->currentUser($request), $workspace->id, ['name' => $c->name, 'at' => $c->scheduled_at?->toIso8601ZuluString()]);
 
@@ -190,12 +195,21 @@ class CampaignController extends Controller
     {
         $this->requireEditor($request, 'send test emails');
         $c = $this->find($workspace, $id);
-        if (! $c->html) {
-            throw new ApiException('not_ready', 'Design the email first.', 422);
+        $letter = $c->format === 'plain';
+        if ($letter ? trim((string) $c->text_body) === '' : ! $c->html) {
+            throw new ApiException('not_ready', $letter ? 'Write the email first.' : 'Design the email first.', 422);
+        }
+        if ($letter) {
+            $this->service->readyForLetters($workspace);
         }
         $subject = $request->input('variant') === 'b' && $c->subject_b ? $c->subject_b : ($c->subject ?: $c->name);
         $from = $request->input('from') ?: ($c->from_email ? ($c->from_name ? "{$c->from_name} <{$c->from_email}>" : $c->from_email) : null);
-        $p = $mailer->validate($workspace, ['from' => $from, 'to' => $request->input('to'), 'subject' => '[Test] '.$subject, 'html' => $c->html, 'type' => 'marketing']);
+        $vars = $request->filled('as') ? $this->recipientVars($workspace, $c, (string) $request->input('as')) : [];
+        // One person's version is sent exactly as they'd get it (no "[Test]", the campaign's reply-to), so a test shows
+        // where it lands too; a plain test is marked.
+        $p = $mailer->validate($workspace, ['from' => $from, 'to' => $request->input('to'), 'subject' => ($request->filled('as') ? '' : '[Test] ').$subject,
+            'reply_to' => $c->reply_to ?: null, 'type' => 'marketing', 'variables' => $vars]
+            + CampaignService::content($c));
         if (count($p['to']) !== 1) {
             throw new ApiException('validation_failed', 'Send a test to one address at a time.', 422, ['to' => 'One address only.']);
         }
@@ -306,7 +320,7 @@ class CampaignController extends Controller
             'subject' => $c->subject, 'subject_b' => $c->subject_b, 'preheader' => $c->preheader,
             'ab' => ['enabled' => $c->ab_enabled, 'test_pct' => $c->ab_test_pct, 'metric' => $c->ab_metric, 'wait_hours' => $c->ab_wait_hours, 'winner' => $c->ab_winner, 'decided_at' => $c->ab_decided_at?->toIso8601ZuluString()],
             'send_mode' => $c->send_mode, 'scheduled_at' => $c->scheduled_at?->toIso8601ZuluString(), 'local_date' => $c->local_date?->toDateString(), 'local_time' => $c->local_time, 'timezone' => $c->timezone,
-            'recipients_count' => $c->recipients_count, 'has_design' => (bool) $c->html, 'shared' => (bool) $c->share_token,
+            'recipients_count' => $c->recipients_count, 'has_design' => $c->format === 'plain' ? trim((string) $c->text_body) !== '' : (bool) $c->html, 'format' => $c->format ?? 'design', 'letter_tracking' => (bool) $c->letter_tracking, 'shared' => (bool) $c->share_token,
             'share_url' => $c->share_token ? rtrim((string) config('app.frontend_url'), '/').'/r/?t='.$c->share_token : null,
             'started_at' => $c->started_at?->toIso8601ZuluString(), 'finished_at' => $c->finished_at?->toIso8601ZuluString(), 'updated_at' => $c->updated_at?->toIso8601ZuluString(),
         ];
@@ -359,6 +373,30 @@ class CampaignController extends Controller
 
         return array_values(array_filter(array_map(fn ($id) => ($r = $rows[$id] ?? null) ? ['id' => $r->id, 'email' => $r->email,
             'name' => trim($r->first_name.' '.$r->last_name), 'status' => $r->status] : null, $ids)));
+    }
+
+    /**
+     * The merge details one person in the campaign's audience would get (?as=email): read live for a site's people,
+     * else from the stored contact. So a test shows exactly their version.
+     *
+     * @return array<string, scalar>
+     */
+    private function recipientVars(Workspace $workspace, Campaign $c, string $email): array
+    {
+        $email = mb_strtolower(trim($email));
+        $seg = $c->audience_type === 'segment' ? Segment::where('workspace_id', $workspace->id)->find($c->audience_id) : null;
+        if ($seg && $seg->site_connection_id) {
+            $site = SiteConnection::where('workspace_id', $workspace->id)->whereNull('revoked_at')->find($seg->site_connection_id)
+                ?? throw new ApiException('not_found', 'This audience’s site isn’t connected any more.', 422);
+            $person = collect(SiteAudience::page($site, $seg->rules, $email, 1, 20, true)['people'])->first(fn ($x) => mb_strtolower((string) ($x['email'] ?? '')) === $email)
+                ?? throw new ApiException('not_found', 'That person isn’t in this campaign’s audience.', 422);
+
+            return SiteAudience::mergeVars($person);
+        }
+        $contact = Contact::where('workspace_id', $workspace->id)->where('email', $email)->first()
+            ?? throw new ApiException('not_found', 'No contact with that email.', 422);
+
+        return ContactService::mergeVars($contact);
     }
 
     private function find(Workspace $workspace, string $id): Campaign

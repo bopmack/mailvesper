@@ -307,3 +307,41 @@ it('withdraws queued emails of a cancelled campaign instead of sending them', fu
     expect($this->aws->argsFor('SendEmail'))->toHaveCount(0)
         ->and(DB::table('campaign_recipients')->where('campaign_id', $id)->where('status', 'cancelled')->count())->toBe(30);
 });
+
+it('sends a plain-text letter: text only, no unsubscribe header, no SES tracking, and it needs a way out in the words', function () {
+    people($this, 2);
+    $id = readyCampaign($this);
+    $this->patchJson(cmp($this, $id), ['format' => 'plain', 'text_body' => "Hi {{ first_name | there }},\n\nAre you around this week?\n\nThanks"])->assertOk()
+        ->assertJsonPath('campaign.format', 'plain')->assertJsonPath('campaign.has_design', true)
+        ->assertJsonPath('campaign.problems.0.key', 'content');
+    $this->patchJson(cmp($this, $id), ['text_body' => "Hi {{ first_name | there }},\n\nAre you around this week?\n\nThanks\n\nP.S. If you’d rather not hear from us again, just reply and let us know."])
+        ->assertOk()->assertJsonPath('campaign.problems', []);
+
+    $this->postJson(cmp($this, "$id/test"), ['to' => 'me@acme.com', 'as' => 'p1@example.com'])->assertStatus(202);
+    $this->postJson(cmp($this, "$id/send"), ['mode' => 'now'])->assertOk();
+
+    $m = Message::where('campaign_id', $id)->where('to_email', 'p1@example.com')->first();
+    expect($m->html)->toBeNull()->and($m->text)->toStartWith("Hi P1,\n\nAre you around")->and($m->unsubscribe_token)->toBeNull();
+    $reqs = collect($this->aws->argsFor('SendEmail'));
+    expect($reqs)->toHaveCount(3); // the test, then the two people
+    foreach ($reqs as $req) {
+        expect($req['ConfigurationSetName'])->toBe('sendline-events-own-tracking')
+            ->and($req['Content']['Simple']['Body'])->not->toHaveKey('Html')
+            ->and(collect($req['Content']['Simple']['Headers'] ?? [])->pluck('Name'))->not->toContain('List-Unsubscribe')->not->toContain('Feedback-ID')->not->toContain('X-Sendline-Tracking');
+    }
+    expect($reqs->first()['Content']['Simple']['Body']['Text']['Data'])->toStartWith('Hi P1,'); // the test: their version
+    expect(collect($this->aws->argsFor('CreateConfigurationSetEventDestination'))->last()['EventDestination']['MatchingEventTypes'])->not->toContain('OPEN')->not->toContain('CLICK');
+
+    // With tracking: a plain-looking HTML copy, SES's normal (tracking) set, still no bulk headers.
+    $id2 = (string) $this->postJson(cmp($this, "$id/duplicate"))->json('campaign.id');
+    $this->patchJson(cmp($this, $id2), ['letter_tracking' => true, 'text_body' => "Hi {{ first_name | there }},\n\nSee it: https://acme.com\n\nIf not, just reply and we won't email you again."])->assertOk()->assertJsonPath('campaign.letter_tracking', true);
+    $this->postJson(cmp($this, "$id2/test"), ['to' => 'me@acme.com', 'as' => 'p2@example.com'])->assertStatus(202);
+    $req = collect($this->aws->argsFor('SendEmail'))->last();
+    expect($req['ConfigurationSetName'])->toBe('sendline-events')
+        ->and($req['Content']['Simple']['Body']['Html']['Data'])->toContain('<p style="margin:0 0 14px">Hi P2,</p>')->toContain('<a href="https://acme.com" style="color:#1a0dab">acme.com</a>')
+        ->and($req['Content']['Simple']['Body']['Text']['Data'])->toStartWith('Hi P2,')
+        ->and(collect($req['Content']['Simple']['Headers'] ?? [])->pluck('Name'))->not->toContain('List-Unsubscribe')->not->toContain('Feedback-ID');
+
+    // Back to the design: the designed email and its unsubscribe header again.
+    $this->patchJson(cmp($this, (string) $this->postJson(cmp($this, "$id/duplicate"))->json('campaign.id')), ['format' => 'design'])->assertOk()->assertJsonPath('campaign.format', 'design');
+});

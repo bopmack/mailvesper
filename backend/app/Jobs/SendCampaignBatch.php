@@ -6,6 +6,7 @@ use App\Exceptions\ApiException;
 use App\Models\Campaign;
 use App\Models\Workspace;
 use App\Services\Activity\Signals;
+use App\Services\Campaigns\CampaignService;
 use App\Services\Sending\Mailer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -98,8 +99,8 @@ class SendCampaignBatch implements ShouldQueue
         $ws = Workspace::findOrFail($c->workspace_id);
         $base = $mailer->validate($ws, [
             'from' => $c->from_name ? "{$c->from_name} <{$c->from_email}>" : $c->from_email, 'to' => $c->from_email, 'subject' => (string) $c->subject,
-            'html' => $c->html, 'reply_to' => $c->reply_to ?: null, 'type' => 'marketing', 'topic' => $c->topic_id, 'tags' => ['campaign' => $c->id],
-        ]);
+            'reply_to' => $c->reply_to ?: null, 'type' => 'marketing', 'topic' => $c->topic_id,
+        ] + CampaignService::content($c, ['campaign' => $c->id]));
         foreach ($rows->groupBy('variant') as $variant => $group) {
             foreach ($group->chunk(Mailer::MAX_RECIPIENTS) as $chunk) {
                 if (Campaign::whereKey($c->id)->value('status') !== 'sending') {

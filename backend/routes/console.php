@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\AdvanceJourneyRun;
+use App\Jobs\ProcessSesEvents;
 use App\Jobs\PurgeWorkspace;
 use App\Jobs\SendCampaignBatch;
 use App\Jobs\StartCampaign;
@@ -107,6 +108,13 @@ Schedule::command('tracking:check')->everyFifteenMinutes()->withoutOverlapping()
 foreach (range(1, max(1, min(16, (int) config('queue.workers', 4)))) as $w) {
     Schedule::command("queue:work database --name=w$w --stop-when-empty --max-time=55 --sleep=1 --tries=1")->everyMinute()->withoutOverlapping()->runInBackground();
 }
+// Safety net for SES notices: if a run was missed, the next minute starts one (it does nothing when none wait).
+Artisan::command('ses:events', function () {
+    if (ProcessSesEvents::ready()->exists()) {
+        ProcessSesEvents::kick();
+    }
+})->purpose('Apply SES notices still waiting');
+Schedule::command('ses:events')->everyMinute();
 Schedule::command('domains:check')->everyFiveMinutes()->withoutOverlapping();
 
 // Engagement score (0-100) from the last 90 days, and dormant contacts: sent 3+ emails in 120 days with no real open or click.

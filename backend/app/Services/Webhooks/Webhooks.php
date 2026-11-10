@@ -38,7 +38,10 @@ class Webhooks
             return 0;
         }
         $payload = ['type' => $type, 'created_at' => now()->toIso8601ZuluString(), 'data' => ($message ? self::messageData($message) : []) + $extra];
-        $inline = $endpoints->count() <= self::INLINE_LIMIT && ! app()->runningInConsole();
+        // Inline (after the response) only for a person's own request. Events from SES or a provider arrive in bursts of
+        // thousands: delivered inline they'd hold every web worker, and an endpoint on the same server would wait for a
+        // worker that never frees up. Those always go through the queue.
+        $inline = $endpoints->count() <= self::INLINE_LIMIT && ! app()->runningInConsole() && ! request()->is('*webhooks/ses/*', '*hooks/delivery/*');
         foreach ($endpoints as $e) {
             $d = WebhookDelivery::create(['endpoint_id' => $e->id, 'workspace_id' => $workspaceId, 'event_type' => $type, 'message_id' => $message?->id, 'payload' => $payload]);
             $inline ? DeliverWebhook::dispatchAfterResponse($d->id) : DeliverWebhook::dispatch($d->id);

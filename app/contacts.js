@@ -65,18 +65,85 @@
         const f = (p, k) => (p.fields || {})[k];
         box.innerHTML = `<div class="ppl-bar">${sites.length > 1 ? `<select class="select" id="pps">${sites.map((x) => `<option value="${x.id}" ${x.id === site.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>` : ''}
             <select class="select" id="ppg"><option value="">Everyone</option>${mine.map((x) => `<option value="${x.id}" ${x.id === seg ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
-          <div class="callout" style="margin-bottom:12px">${ic('link', 15)}<div>Read live from <b>${esc(site.name)}</b> each time you open this, never copied into ${SL_BN()}. Only people who agreed to marketing get campaigns; unsubscribes and bounces are kept here.</div></div>
-          <div class="card">${r.people.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Person</th><th>Role</th><th>Status</th><th>Last login</th><th class="num">Spent</th><th>Marketing</th></tr></thead><tbody>${r.people.map((p) => `<tr style="cursor:default"><td><div class="cell-main">${esc([p.first_name, p.last_name].filter(Boolean).join(' ') || p.email)}</div><div class="cell-sub">${esc(p.email)}</div></td>
+          <div class="callout" style="margin-bottom:12px">${ic('link', 15)}<div>Read live from <b>${esc(site.name)}</b> each time you open this, never copied into ${SL_BN()}. Only people who agreed to marketing get campaigns; unsubscribes and bounces are kept here. Click a person to see the placeholders you can put in an email, filled in for them.</div></div>
+          <div class="card">${r.people.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Person</th><th>Role</th><th>Status</th><th>Last login</th><th class="num">Spent</th><th>Marketing</th></tr></thead><tbody>${r.people.map((p, i) => `<tr data-pi="${i}" title="See this person's placeholders"><td><div class="cell-main">${esc([p.first_name, p.last_name].filter(Boolean).join(' ') || p.email)}</div><div class="cell-sub">${esc(p.email)}</div></td>
             <td>${f(p, 'role') != null ? `<span class="tag">${esc(f(p, 'role'))}</span>` : '<span class="faint">–</span>'}${f(p, 'creator_verified') ? ` <span class="tag">verified</span>` : ''}</td>
             <td class="faint">${esc(f(p, 'account_status') || '–')}</td><td class="faint">${f(p, 'last_login_at') ? ago(String(f(p, 'last_login_at')).replace(' ', 'T') + 'Z') : '–'}</td>
             <td class="num">${f(p, 'total_spent') != null ? fmt(f(p, 'total_spent')) : '–'}</td><td>${p.subscribed ? S.chip('delivered', 'Agreed') : '<span class="faint">No</span>'}</td></tr>`).join('')}</tbody></table></div>`
           : `<div class="card-body" style="text-align:center;padding:32px 20px"><b>Nobody matches</b></div>`}</div>`;
         const ss = $('#pps'); if (ss) ss.onchange = () => { location.hash = '#/contacts?tab=people&site=' + ss.value; };
         $('#ppg').onchange = (e) => go({ segment: e.target.value || '' });
+        box.querySelectorAll('tr[data-pi]').forEach((tr) => { tr.onclick = () => personTags(r.people[+tr.dataset.pi], site); });
         S.pageBar(ctl, box.firstElementChild, box.querySelector('.card:last-child'), 'people', 'beforeend');
       }).ready.catch((err) => alive(g) && (box.innerHTML = `<div class="card"><div class="card-body"><div class="callout warn">${ic('alert', 15)}<div>${esc(err.message)}</div></div></div></div>`));
     }).catch((err) => alive(g) && (box.innerHTML = `<div class="card"><div class="card-body">${esc(err.message)}</div></div>`));
   }
+
+  // One site person's placeholders, with their values: what {{…}} becomes in an email to them. back: reopen the list.
+  function personTags(p, site, back, campaignId) {
+    const vars = Object.assign({ first_name: p.first_name, last_name: p.last_name, email: p.email }, p.fields || {});
+    const show = (v) => v === null || v === undefined || v === '' ? '<span class="faint">empty: the fallback is used</span>' : esc(typeof v === 'boolean' ? (v ? 'yes' : 'no') : String(v));
+    modal({ title: [p.first_name, p.last_name].filter(Boolean).join(' ') || p.email, desc: `${p.email} · read live from ${site.name}`, icon: 'user', size: 'md',
+      body: `${campaignId ? `<div class="callout" style="margin:0 0 14px;display:block"><b>Send ${esc(p.first_name || 'this person')}’s version</b><p class="faint" style="margin:4px 0 8px;font-size:12.5px">Exactly what they’ll get, with their details filled in, sent only to the address below (to yourself, or to them to try it on one person). It goes out exactly as they’d get it (same subject and reply-to). Nobody else gets anything.</p>
+          <div style="display:flex;gap:8px"><input class="input" id="pt-to" type="email" value="${esc((window.SL_ME && SL_ME.user && SL_ME.user.email) || '')}" style="flex:1;padding-left:10px;background-image:none"><button class="btn btn-primary btn-sm" id="pt-send">Send</button><button class="btn btn-sm" id="pt-them" title="${esc(p.email)}">Use their address</button></div><div id="pt-res" style="margin-top:8px;font-size:12.5px"></div></div>` : ''}<p class="faint" style="margin:0 0 10px;font-size:13px">Put a placeholder in the subject or the email. Add fallbacks after a bar, tried in order: <code>{{real_first_name | first_name | there}}</code> uses the verified name, else the profile name, else “there”.</p>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Placeholder</th><th>For this person</th></tr></thead><tbody>${Object.keys(vars).map((k) => `<tr style="cursor:pointer" data-tag="${esc(k)}" title="Copy"><td><code>{{${esc(k)}}}</code></td><td>${show(vars[k])}</td></tr>`).join('')}</tbody></table></div>`,
+      actions: back ? [{ label: 'Back to the list', onClick: () => { back(); return false; } }, { label: 'Close' }] : [{ label: 'Close' }],
+      mount: (root) => {
+        root.querySelectorAll('tr[data-tag]').forEach((tr) => { tr.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(`{{${tr.dataset.tag}}}`); toast(`Copied {{${tr.dataset.tag}}}`); }; });
+        const go = root.querySelector('#pt-send'); if (!go) return;
+        root.querySelector('#pt-them').onclick = () => { root.querySelector('#pt-to').value = p.email; };
+        go.onclick = () => {
+          const to = root.querySelector('#pt-to').value.trim(), res = root.querySelector('#pt-res');
+          if (!/^\S+@\S+\.\S+$/.test(to)) { res.innerHTML = '<span style="color:var(--s-bounced)">Enter a valid email address.</span>'; return; }
+          go.disabled = true; go.textContent = 'Sending…';
+          API('POST', `${base()}/campaigns/${campaignId}/test`, { to, as: p.email })
+            .then(() => { res.innerHTML = `<span style="display:inline-flex;vertical-align:-2px">${ic('check', 13, 2.5)}</span> Sent ${esc(p.first_name || p.email)}’s version to <b>${esc(to)}</b>. Check that inbox (and spam) in a minute.`; toast('Test sent'); })
+            .catch((e) => { res.innerHTML = `<span style="color:var(--s-bounced)">${esc(e.message)}</span>`; })
+            .finally(() => { go.disabled = false; go.textContent = 'Send'; });
+        };
+      } });
+  }
+
+  // A live segment's people (from a campaign's audience): read from the site, only who agreed to marketing, as the send would.
+  S.sitePeople = (segId, campaignId) => Promise.all([API('GET', base() + '/segments'), sitesNow()]).then(([sg, sites]) => {
+    const seg = sg.segments.find((x) => x.id === segId);
+    if (!seg || !seg.site_connection_id) return toast('That audience isn’t read from a site.');
+    const site = sites.find((x) => x.id === seg.site_connection_id) || { id: seg.site_connection_id, name: seg.group || 'the site' };
+    const st = { page: 1, q: '', r: null, err: '' };
+    let box = null, qT = null;
+    const load = () => {
+      st.r = null; draw();
+      API('GET', `${base()}/connections/${site.id}/people?` + new URLSearchParams({ segment: seg.id, subscribed: '1', page: String(st.page), q: st.q }).toString())
+        .then((r) => { st.r = r; st.err = ''; draw(); }, (e) => { st.err = e.message; draw(); });
+    };
+    const draw = () => {
+      if (!box || !box.isConnected) return;
+      const r = st.r, f = (p, k) => (p.fields || {})[k];
+      const real = r && r.people.some((p) => 'real_first_name' in (p.fields || {}));
+      const rows = !r ? `<tr><td colspan="4" class="faint">${st.err ? esc(st.err) : 'Reading live from ' + esc(site.name) + '…'}</td></tr>`
+        : r.people.length ? r.people.map((p, i) => `<tr data-pi="${i}" style="cursor:pointer" title="See this person's placeholders"><td><div class="cell-main">${esc([p.first_name, p.last_name].filter(Boolean).join(' ') || p.email)}</div><div class="cell-sub">${esc(p.email)}</div></td>
+          ${real ? `<td>${f(p, 'real_first_name') ? esc(f(p, 'real_first_name')) + ' <span class="faint">(verified)</span>' : p.first_name ? esc(p.first_name) + ' <span class="faint">(profile)</span>' : '<span class="faint">there (fallback)</span>'}</td>` : ''}<td>${f(p, 'role') != null ? `<span class="tag">${esc(f(p, 'role'))}</span>` : '–'}</td><td class="faint">${f(p, 'last_login_at') ? ago(String(f(p, 'last_login_at')).replace(' ', 'T') + 'Z') : '–'}</td></tr>`).join('')
+        : '<tr><td colspan="4" class="faint">Nobody matches</td></tr>';
+      const pages = r ? Math.max(1, Math.ceil(r.meta.total / 50)) : 1;
+      box.querySelector('#spt').innerHTML = `<thead><tr><th>Person</th>${real ? '<th title="{{real_first_name | first_name | there}}">Name in the email</th>' : ''}<th>Role</th><th>Last login</th></tr></thead><tbody>${rows}</tbody>`;
+      box.querySelector('#spf').innerHTML = r ? `<span class="faint" style="font-size:12.5px">${fmt(r.meta.total)} ${r.meta.total === 1 ? 'person' : 'people'} · page ${st.page} of ${pages} · click a person to see their placeholders${campaignId ? ' and send yourself their version' : ''}</span>
+        <span><button class="btn btn-sm" id="spp" ${st.page < 2 ? 'disabled' : ''}>Previous</button> <button class="btn btn-sm" id="spn" ${r.meta.has_more ? '' : 'disabled'}>Next</button></span>` : '';
+      const pv = box.querySelector('#spp'), nx = box.querySelector('#spn');
+      if (pv) pv.onclick = () => { st.page--; load(); };
+      if (nx) nx.onclick = () => { st.page++; load(); };
+      box.querySelectorAll('tr[data-pi]').forEach((tr) => { tr.onclick = () => personTags(r.people[+tr.dataset.pi], site, open, campaignId); });
+    };
+    const open = () => modal({ title: seg.name, desc: `Read live from ${site.name}: exactly who this campaign goes to (only people who agreed to marketing).`, icon: 'users', size: 'lg',
+      body: `<input class="input" id="spq" placeholder="Search name or email" value="${esc(st.q)}" style="width:100%;margin-bottom:10px">
+        <div class="table-wrap" style="max-height:52vh;overflow:auto"><table class="tbl" id="spt"></table></div>
+        <div id="spf" style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap"></div>`,
+      mount: (root) => {
+        box = root;
+        root.querySelector('#spq').oninput = (e) => { clearTimeout(qT); qT = setTimeout(() => { st.q = e.target.value.trim(); st.page = 1; load(); }, 350); };
+        st.r ? draw() : load();
+      } });
+    open();
+  }).catch((e) => toast(e.message));
 
   function contactsTab(box, g) {
     const st = { rows: [], next: null, total: 0 };

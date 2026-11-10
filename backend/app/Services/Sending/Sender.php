@@ -190,7 +190,7 @@ class Sender
         foreach ($m->headers ?? [] as $name => $value) {
             $h->addTextHeader((string) $name, (string) $value);
         }
-        if ($m->unsubscribe_token) {
+        if ($m->unsubscribe_token && ! self::isLetter($m)) {
             $h->addTextHeader('List-Unsubscribe', '<'.Mailer::oneClickUrl($m->unsubscribe_token).'>');
             $h->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
         }
@@ -201,8 +201,8 @@ class Sender
                 $h->addTextHeader($name, $value);
             }
         }
-        if ($fid = Compose::feedbackId($m->campaign_id, $m->journey_id, (string) $m->type, $m->workspace_id, $m->headers)) {
-            $h->addTextHeader('Feedback-ID', $fid);
+        if (! self::isLetter($m) && $fid = Compose::feedbackId($m->campaign_id, $m->journey_id, (string) $m->type, $m->workspace_id, $m->headers)) {
+            $h->addTextHeader('Feedback-ID', $fid); // a bulk-mail label: letters go without it
         }
         // Our own Message-ID, stored, so a reply's In-Reply-To finds this email (the server's queue id wouldn't).
         $messageId = $m->id.'@'.substr((string) strrchr($m->from_email, '@'), 1);
@@ -249,6 +249,18 @@ class Sender
             : $this->finish($m, 'failed', $why);
     }
 
+    /** The tag a campaign's plain-text letters carry (see CampaignService::content). */
+    public const LETTER_TAG = 'style';
+
+    /** A letter that counts opens and clicks: the normal events set, so SES adds its tracking. */
+    public const TRACKED_LETTER = 'tracked-letter';
+
+    /** A plain-text letter: no unsubscribe header (its opt-out is in the words), no SES tracking, no bulk labels (Feedback-ID). */
+    public static function isLetter(Message $m): bool
+    {
+        return in_array(($m->tags ?? [])[self::LETTER_TAG] ?? null, ['letter', self::TRACKED_LETTER], true);
+    }
+
     /** @return array<string, mixed> */
     private function request(Message $m, SesConnection $conn): array
     {
@@ -256,13 +268,16 @@ class Sender
         foreach ($m->headers ?? [] as $name => $value) {
             $headers[] = ['Name' => (string) $name, 'Value' => (string) $value];
         }
-        if ($m->unsubscribe_token) {
+        if ($m->unsubscribe_token && ! self::isLetter($m)) {
             // RFC 8058 one-click unsubscribe, required by Gmail and Yahoo for bulk mail.
             $headers[] = ['Name' => 'List-Unsubscribe', 'Value' => '<'.Mailer::oneClickUrl($m->unsubscribe_token).'>'];
             $headers[] = ['Name' => 'List-Unsubscribe-Post', 'Value' => 'List-Unsubscribe=One-Click'];
         }
-        $headers[] = ['Name' => 'X-Sendline-Tracking', 'Value' => $m->tracking_code];
-        if ($fid = Compose::feedbackId($m->campaign_id, $m->journey_id, (string) $m->type, $m->workspace_id, $m->headers)) {
+        // A letter goes without our labels: SES reports its bounces and complaints by message id anyway.
+        if (! self::isLetter($m)) {
+            $headers[] = ['Name' => 'X-Sendline-Tracking', 'Value' => $m->tracking_code];
+        }
+        if (! self::isLetter($m) && $fid = Compose::feedbackId($m->campaign_id, $m->journey_id, (string) $m->type, $m->workspace_id, $m->headers)) {
             $headers[] = ['Name' => 'Feedback-ID', 'Value' => $fid];
         }
 
@@ -288,7 +303,7 @@ class Sender
             'Destination' => ['ToAddresses' => [$m->to_email]],
             'ReplyToAddresses' => $m->reply_to ?: null,
             'Content' => ['Simple' => ['Subject' => ['Data' => $m->subject, 'Charset' => 'UTF-8'], 'Body' => $body, 'Headers' => $headers]],
-            'ConfigurationSetName' => $own ? SesConnection::CONFIG_SET_OWN_TRACKING : ($conn->configuration_set ?: SesConnection::CONFIG_SET),
+            'ConfigurationSetName' => $own || (self::isLetter($m) && ($m->tags ?? [])[self::LETTER_TAG] !== self::TRACKED_LETTER) ? SesConnection::CONFIG_SET_OWN_TRACKING : ($conn->configuration_set ?: SesConnection::CONFIG_SET),
             'EmailTags' => $tags,
         ], fn ($v) => $v !== null);
     }

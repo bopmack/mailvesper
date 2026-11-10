@@ -34,7 +34,8 @@ class CampaignReport
                 sum(case when opened_at is not null then 1 else 0 end) as opened, sum(case when opened_at is null and machine_open_count > 0 then 1 else 0 end) as machine_only,
                 sum(case when clicked_at is not null then 1 else 0 end) as clicked, sum(case when status = 'bounced' then 1 else 0 end) as bounced,
                 sum(case when status = 'complained' then 1 else 0 end) as complained, sum(case when status in ('failed','rejected') then 1 else 0 end) as failed,
-                sum(case when status = 'suppressed' then 1 else 0 end) as suppressed, sum(case when status in ('queued','sending') then 1 else 0 end) as queued")->first();
+                sum(case when status = 'suppressed' then 1 else 0 end) as suppressed, sum(case when status in ('queued','sending') then 1 else 0 end) as queued,
+                sum(case when status in ('sent','delayed') and sent_at < ? then 1 else 0 end) as unconfirmed", [now()->subHour()])->first();
         $unsub = DB::table('message_events')->join('messages', 'messages.id', '=', 'message_events.message_id')->where('messages.campaign_id', $campaignId)
             ->when($variant, fn ($q, $v) => $q->where('messages.variant', $v))->where('message_events.type', 'unsubscribed')->distinct()->count('message_events.message_id');
         $r = DB::table('campaign_recipients')->where('campaign_id', $campaignId)->when($variant, fn ($q, $v) => $q->where('variant', $v))
@@ -44,6 +45,7 @@ class CampaignReport
             'recipients' => $r->recipients ?? 0, 'pending' => $r->pending ?? 0, 'skipped' => $r->skipped ?? 0, 'queued' => $m->queued ?? 0,
             'sent' => $m->sent ?? 0, 'delivered' => $m->delivered ?? 0, 'opened' => $m->opened ?? 0, 'machine_only' => $m->machine_only ?? 0, 'clicked' => $m->clicked ?? 0,
             'bounced' => $m->bounced ?? 0, 'complained' => $m->complained ?? 0, 'unsubscribed' => $unsub, 'failed' => $m->failed ?? 0,
+            'unconfirmed' => (int) ($m->unconfirmed ?? 0), // handed to SES over an hour ago, and no delivery or bounce report since
         ]);
     }
 

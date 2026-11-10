@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Ses;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessSesEvents;
 use App\Models\SesConnection;
-use App\Services\Ses\EventProcessor;
 use Aws\Sns\Exception\InvalidSnsMessageException;
 use Aws\Sns\Message;
 use Aws\Sns\MessageValidator;
@@ -18,7 +18,8 @@ use Throwable;
 
 /**
  * Receives SES events from the customer's SNS topic. Every message is signature-checked against
- * Amazon's certificate and must come from the topic we created for this connection.
+ * Amazon's certificate and must come from the topic we created for this connection. Events are only stored here;
+ * ProcessSesEvents applies them.
  */
 class SesWebhookController extends Controller
 {
@@ -92,10 +93,13 @@ class SesWebhookController extends Controller
             'payload' => json_encode($event),
             'created_at' => now(),
         ]);
-        $conn->forceFill(['last_event_at' => now()])->saveQuietly();
-        if ($inserted) { // SNS can deliver the same message twice; apply it once
-            $id = DB::table('ses_events')->where('sns_message_id', mb_substr((string) $message['MessageId'], 0, 64))->value('id');
-            app(EventProcessor::class)->apply($conn->workspace_id, $event, is_numeric($id) ? (int) $id : null);
+        if (! $conn->last_event_at || $conn->last_event_at->lt(now()->subMinute())) {
+            $conn->forceFill(['last_event_at' => now()])->saveQuietly();
+        }
+        // Kept, then applied by a background job: Amazon gets its answer at once, even while the server is busy
+        // sending, so no notice is lost. SNS can deliver the same message twice; the unique key keeps one.
+        if ($inserted) {
+            ProcessSesEvents::kick();
         }
 
         return response('', 200);

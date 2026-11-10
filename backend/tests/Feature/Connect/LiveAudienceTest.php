@@ -203,3 +203,18 @@ it('refuses rules a site can’t answer before asking it, and a forged signature
     $this->secret = 'whsec_'.base64_encode(str_repeat('z', 32)); // the site now expects a different secret
     $this->getJson("/v1/workspaces/{$this->ws->id}/connections/{$this->site->id}/people")->assertStatus(502)->assertJsonPath('error.message', fn ($m) => str_contains($m, 'signature'));
 });
+
+it('sends a test of a site person’s own version, read live, to any address', function () {
+    $seg = liveSeg($this, 'All subscribers');
+    $id = $this->postJson("/v1/workspaces/{$this->ws->id}/campaigns", ['name' => 'Fans'])->json('campaign.id');
+    $doc = json_decode(file_get_contents(base_path('tests/fixtures/design.json')), true);
+    $this->patchJson("/v1/workspaces/{$this->ws->id}/campaigns/$id", ['audience_type' => 'segment', 'audience_id' => $seg->id, 'from_email' => 'news@acme.com', 'from_name' => 'Acme',
+        'subject' => 'Hi {{ first_name | friend }}, you spent {{ total_spent }}', 'doc' => $doc])->assertOk();
+
+    $this->postJson("/v1/workspaces/{$this->ws->id}/campaigns/$id/test", ['to' => 'me@acme.com', 'as' => 'Bola@example.com'])->assertStatus(202);
+    expect(Message::where('to_email', 'me@acme.com')->latest('id')->value('subject'))->toBe('Hi Bola, you spent 150'); // their version: exactly as they'd get it
+    $this->postJson("/v1/workspaces/{$this->ws->id}/campaigns/$id/test", ['to' => 'me@acme.com'])->assertStatus(202); // no one: the fallbacks
+    expect(Message::where('to_email', 'me@acme.com')->latest('id')->value('subject'))->toBe('[Test] Hi friend, you spent ');
+    $this->postJson("/v1/workspaces/{$this->ws->id}/campaigns/$id/test", ['to' => 'me@acme.com', 'as' => 'chi@example.com'])->assertStatus(422); // not in the audience
+    expect(Contact::where('workspace_id', $this->ws->id)->count())->toBe(0);
+});

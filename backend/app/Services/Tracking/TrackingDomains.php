@@ -14,6 +14,7 @@ use App\Services\Smtp\Tracking;
 use App\Services\Webhooks\UrlGuard;
 use Aws\Exception\AwsException;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -85,6 +86,24 @@ class TrackingDomains
         }
 
         return $routed ? "$host points here, but it doesn’t answer with ".Brand::name()." yet. The web server must serve $host like ".$target.', with a certificate for it.' : "Add a CNAME record: $host → $target.";
+    }
+
+    /**
+     * Makes sure the events set without SES's open and click tracking exists (plain-text letters use it: no pixel,
+     * no rewritten links; bounces and complaints still come back). Remembered for a day once it works.
+     */
+    public function quietSet(SesConnection $conn): bool
+    {
+        $key = 'ses-quiet-set:'.$conn->id;
+        if (Cache::get($key)) {
+            return true;
+        }
+        $ok = $this->prepareSes($conn);
+        if ($ok) {
+            Cache::put($key, true, now()->addDay());
+        }
+
+        return $ok;
     }
 
     /** A copy of the events configuration set without SES's own open and click tracking. */
